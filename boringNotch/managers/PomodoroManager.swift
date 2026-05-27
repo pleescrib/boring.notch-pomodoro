@@ -105,6 +105,9 @@ final class PomodoroManager: ObservableObject {
 
     // MARK: - Public API
 
+    /// True when the timer was paused mid-phase (as opposed to never started or between phases).
+    private var isPausedMidPhase = false
+
     func startOrResume() {
         guard !isRunning else { return }
         isRunning = true
@@ -113,12 +116,20 @@ final class PomodoroManager: ObservableObject {
             .sink { [weak self] _ in
                 self?.tick()
             }
-        musicCoordinator.phaseStarted(phase)
+        if isPausedMidPhase {
+            // Resuming within the same phase — just continue playback, no URL navigation
+            musicCoordinator.timerResumed()
+        } else {
+            // Starting a new phase for the first time — full transition with URL navigation
+            musicCoordinator.phaseStarted(phase)
+        }
+        isPausedMidPhase = false
     }
 
     func pause() {
         guard isRunning else { return }
         isRunning = false
+        isPausedMidPhase = true
         timerCancellable?.cancel()
         timerCancellable = nil
         musicCoordinator.timerPaused()
@@ -174,6 +185,7 @@ final class PomodoroManager: ObservableObject {
 
         secondsRemaining = totalSecondsForCurrentPhase()
         phaseElapsedSeconds = 0
+        isPausedMidPhase = false
         persistState()
 
         if isRunning {

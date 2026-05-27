@@ -61,6 +61,13 @@ final class PomodoroMusicCoordinator {
         Task { await sendCommand("/pause") }
     }
 
+    /// Called when the timer resumes mid-phase (no phase change occurred).
+    /// Issues a simple play command — no URL navigation, no shuffle sync.
+    func timerResumed() {
+        guard Defaults[.pomodoroYTMEnabled] else { return }
+        Task { await sendCommand("/play") }
+    }
+
     // MARK: - Phase Transition
 
     private func executePhaseTransition(urlString: String, shuffle: Bool) async {
@@ -80,10 +87,14 @@ final class PomodoroMusicCoordinator {
         if !urlString.isEmpty, let url = URL(string: urlString) {
             let navigated = await navigateViaAPI(to: url)
             if !navigated {
-                // Fallback: activate YTMD so the user can see the current state;
-                // pure URL-document opening is not supported by YTMD's Electron host.
-                await activateYTMD()
-                print("[PomodoroMusicCoordinator] Navigation plugin unavailable — activated YTMD app for manual navigation")
+                // Fallback A: attempt to open the URL targeting the YTMD app directly.
+                // YTMD (Electron) may not handle URL-document arguments, but we try.
+                let opened = await openURLInYTMD(url)
+                if !opened {
+                    // Fallback B: open in the system default browser/handler as a last resort.
+                    await MainActor.run { NSWorkspace.shared.open(url) }
+                    print("[PomodoroMusicCoordinator] Navigation plugin unavailable — opened URL in default browser as fallback")
+                }
             }
             try? await Task.sleep(for: .seconds(2))
             guard !Task.isCancelled else { return }
@@ -204,11 +215,25 @@ final class PomodoroMusicCoordinator {
         NSWorkspace.shared.runningApplications.contains { $0.bundleIdentifier == bundleID }
     }
 
-    /// Bring YTMD to focus (fallback when Navigation plugin is unavailable).
+    /// Attempt to open the URL in the YTMD app via NSWorkspace.
+    /// YTMD (Electron) may not handle URL arguments as documents, but this is the
+    /// standard macOS fallback path. Returns true if the open call was dispatched.
+    @discardableResult
     @MainActor
-    private func activateYTMD() {
-        NSWorkspace.shared.runningApplications
-            .first { $0.bundleIdentifier == bundleID }?
-            .activate(options: [])
+    private func openURLInYTMD(_ url: URL) -> Bool {
+        guard let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID)
+        else {
+            print("[PomodoroMusicCoordinator] YTMD app not found for URL fallback")
+            return false
+        }
+        let config = NSWorkspace.OpenConfiguration()
+        config.activates = true
+        NSWorkspace.shared.open([url], withApplicationAt: appURL, configuration: config) { _, error in
+            if let error {
+                print("[PomodoroMusicCoordinator] NSWorkspace URL open failed: \(error.localizedDescription)")
+            }
+        }
+        return true
     }
 }
+
