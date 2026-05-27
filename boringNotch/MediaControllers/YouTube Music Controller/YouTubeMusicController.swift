@@ -97,6 +97,17 @@ final class YouTubeMusicController: MediaControllerProtocol {
     func toggleShuffle() async { await sendCommand(endpoint: "/shuffle", method: "POST") }
     func toggleRepeat() async { await sendCommand(endpoint: "/switch-repeat", method: "POST") }
 
+    /// Navigate YTMD to a specific YouTube Music URL.
+    /// Requires the Navigation plugin to be enabled in YTMD settings.
+    func navigate(to url: URL) async {
+        await sendCommand(
+            endpoint: "/navigate",
+            method: "POST",
+            body: ["url": url.absoluteString],
+            refresh: false
+        )
+    }
+
     nonisolated func isActive() -> Bool {
         NSWorkspace.shared.runningApplications.contains {
             $0.bundleIdentifier == configuration.bundleIdentifier

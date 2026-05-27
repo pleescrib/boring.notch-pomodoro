@@ -617,6 +617,16 @@ class MusicManager: ObservableObject {
         }
     }
 
+    /// Navigate YouTube Music Desktop App to a specific URL.
+    /// Only works when YTMD is the active controller with the Navigation plugin enabled.
+    func navigate(to url: URL) {
+        Task {
+            if let ytmController = activeController as? YouTubeMusicController {
+                await ytmController.navigate(to: url)
+            }
+        }
+    }
+
     func toggleRepeat() {
         Task {
             await activeController?.toggleRepeat()

@@ -3,16 +3,14 @@
 //  boringNotch
 //
 
-import AppKit
 import Defaults
 import Foundation
 
 /// Coordinates YouTube Music playback with Pomodoro timer phases.
-/// When the integration is enabled, navigates YTMD to the configured URL
-/// for each phase and ensures playback is running.
+/// Uses the YTMD companion HTTP API (Navigation plugin + playback controls)
+/// to navigate to phase-configured playlists and manage play/shuffle state.
 final class PomodoroMusicCoordinator {
-    private let ytmdBundleID = "com.github.th-ch.youtube-music"
-    private var pendingNavigationTask: Task<Void, Never>?
+    private var pendingTask: Task<Void, Never>?
 
     // MARK: - Phase Events
 
@@ -34,44 +32,20 @@ final class PomodoroMusicCoordinator {
             shuffle = Defaults[.pomodoroYTMLongBreakShuffle]
         }
 
-        // Cancel any in-flight navigation from a prior phase transition
-        pendingNavigationTask?.cancel()
+        pendingTask?.cancel()
+        pendingTask = Task {
+            // Navigate YTMD to the configured URL via the companion API Navigation plugin
+            if !urlString.isEmpty, let url = URL(string: urlString) {
+                MusicManager.shared.navigate(to: url)
+                // Give YTMD time to load the new content before issuing playback commands
+                try? await Task.sleep(for: .seconds(2))
+                guard !Task.isCancelled else { return }
+            }
 
-        if !urlString.isEmpty, let url = URL(string: urlString) {
-            navigateAndPlay(url: url, shuffle: shuffle)
-        } else {
-            // No URL configured for this phase — just ensure playback continues
-            MusicManager.shared.play()
-        }
-    }
-
-    func timerPaused() {
-        guard Defaults[.pomodoroYTMEnabled] else { return }
-        pendingNavigationTask?.cancel()
-        MusicManager.shared.pause()
-    }
-
-    // MARK: - Private
-
-    private func navigateAndPlay(url: URL, shuffle: Bool) {
-        // Open the URL inside YouTube Music Desktop App
-        if let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: ytmdBundleID) {
-            let config = NSWorkspace.OpenConfiguration()
-            config.activates = false
-            NSWorkspace.shared.open([url], withApplicationAt: appURL, configuration: config) { _, _ in }
-        } else {
-            // YTMD not installed; open in default browser as fallback
-            NSWorkspace.shared.open(url)
-        }
-
-        // Give YTMD time to navigate before issuing playback commands
-        pendingNavigationTask = Task {
-            try? await Task.sleep(for: .seconds(2.5))
-            guard !Task.isCancelled else { return }
-
+            // Ensure playback is running for this phase
             MusicManager.shared.play()
 
-            // Sync shuffle if needed
+            // Sync shuffle state with the phase preference
             try? await Task.sleep(for: .milliseconds(400))
             guard !Task.isCancelled else { return }
 
@@ -80,5 +54,11 @@ final class PomodoroMusicCoordinator {
                 MusicManager.shared.toggleShuffle()
             }
         }
+    }
+
+    func timerPaused() {
+        guard Defaults[.pomodoroYTMEnabled] else { return }
+        pendingTask?.cancel()
+        MusicManager.shared.pause()
     }
 }
