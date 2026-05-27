@@ -36,13 +36,18 @@ final class PomodoroMusicCoordinator {
         pendingTask = Task {
             // Navigate YTMD to the configured URL via the companion API Navigation plugin
             if !urlString.isEmpty, let url = URL(string: urlString) {
+                // Pause current playback cleanly before switching content
+                MusicManager.shared.pause()
+                try? await Task.sleep(for: .milliseconds(300))
+                guard !Task.isCancelled else { return }
+
                 MusicManager.shared.navigate(to: url)
                 // Give YTMD time to load the new content before issuing playback commands
                 try? await Task.sleep(for: .seconds(2))
                 guard !Task.isCancelled else { return }
             }
 
-            // Ensure playback is running for this phase
+            // Start playback for this phase
             MusicManager.shared.play()
 
             // Sync shuffle state with the phase preference
