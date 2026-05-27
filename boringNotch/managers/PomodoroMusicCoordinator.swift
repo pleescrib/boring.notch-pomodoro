@@ -13,13 +13,10 @@ import Foundation
 /// work regardless of the app-wide music controller preference.
 ///
 /// Navigation strategy (tried in order, no dialogs on failure):
-///   1. POST /api/v1/navigate  — companion API (requires Navigation plugin to
-///      register this route; returns 404 in most YTMD builds)
-///   2. ytmd:// custom URL scheme — YTMD registers ytmd:// via
-///      app.setAsDefaultProtocolClient; opening ytmd://navigate?url=<encoded>
-///      triggers YTMD's open-url Electron handler. A scheme pre-check ensures
-///      we never open this if YTMD hasn't registered it (avoids OS dialogs).
-///   3. Silent continue — play/shuffle the current content with no error.
+///   1. POST /api/v1/navigate  — companion API (requires Navigation plugin route; 404 in most builds)
+///   2. ytmd:// custom URL scheme — YTMD's Electron open-url handler (not registered on this machine)
+///   3. POST /api/v1/queue — inject videoId or playlistId extracted from the configured URL
+///   4. Silent continue — play/shuffle the current content with no error
 final class PomodoroMusicCoordinator {
 
     // MARK: - YTMD companion API config
@@ -36,7 +33,7 @@ final class PomodoroMusicCoordinator {
     }()
 
     private var pendingTask: Task<Void, Never>?
-    private var hasLoggedAvailableRoutes = false
+    private var hasLoggedQueueFormat = false
 
     // MARK: - Phase Events
 
@@ -99,20 +96,21 @@ final class PomodoroMusicCoordinator {
             // Strategy 1: companion API /navigate endpoint
             navigated = await navigateViaAPI(to: url)
 
-            // Strategy 2: ytmd:// custom URL scheme
+            // Strategy 2: ytmd:// custom URL scheme (requires YTMD to register scheme)
             if !navigated {
                 navigated = await navigateViaYTMDScheme(urlString: urlString)
             }
 
+            // Strategy 3: queue API — extract videoId / playlistId and inject via /api/v1/queue
+            if !navigated {
+                navigated = await navigateViaQueue(url: url)
+            }
+
             if navigated {
-                // Give YTMD time to load the new content before we resume playback
+                // Give YTMD time to load the new content before resuming playback
                 try? await Task.sleep(for: .seconds(2))
             } else {
-                // Log available routes once so the user can see what YTMD actually exposes
-                if !hasLoggedAvailableRoutes {
-                    hasLoggedAvailableRoutes = true
-                    await probeAndLogAvailableRoutes()
-                }
+                print("[PomodoroMusicCoordinator] All navigation strategies exhausted — continuing with current content")
             }
             guard !Task.isCancelled else { return }
         }
@@ -132,8 +130,6 @@ final class PomodoroMusicCoordinator {
     // MARK: - Navigation Strategies
 
     /// Strategy 1: POST /api/v1/navigate via YTMD companion API.
-    /// Requires the Navigation plugin to register this route with the API Server.
-    /// Returns true on HTTP 2xx, false otherwise (no dialogs on failure).
     private func navigateViaAPI(to url: URL) async -> Bool {
         guard let token = await getToken() else { return false }
         guard let endpoint = URL(string: "\(baseURL)/api/v1/navigate") else { return false }
@@ -146,15 +142,12 @@ final class PomodoroMusicCoordinator {
 
         guard let (_, response) = try? await session.data(for: request),
               let http = response as? HTTPURLResponse
-        else {
-            print("[PomodoroMusicCoordinator] API navigate: no response")
-            return false
-        }
+        else { return false }
 
         if http.statusCode == 401 { cachedToken = nil }
 
         guard (200..<300).contains(http.statusCode) else {
-            print("[PomodoroMusicCoordinator] API navigate: HTTP \(http.statusCode) — trying ytmd:// scheme")
+            print("[PomodoroMusicCoordinator] API navigate: HTTP \(http.statusCode)")
             return false
         }
 
@@ -162,75 +155,115 @@ final class PomodoroMusicCoordinator {
         return true
     }
 
-    /// Strategy 2: Open ytmd://navigate?url=<encoded> via macOS URL scheme dispatch.
-    ///
-    /// th-ch/youtube-music registers itself as the handler for the ytmd:// scheme
-    /// via app.setAsDefaultProtocolClient('ytmd'). Opening a ytmd:// URL triggers
-    /// YTMD's Electron open-url event handler, which can navigate the main window.
-    ///
-    /// A handler pre-check via NSWorkspace ensures we never trigger an OS "no
-    /// application found" error dialog when the scheme isn't registered.
+    /// Strategy 2: ytmd:// custom URL scheme dispatch.
+    /// Only attempted when YTMD has registered the ytmd:// scheme (pre-checked via urlForApplication).
     @MainActor
     private func navigateViaYTMDScheme(urlString: String) async -> Bool {
-        // Percent-encode the inner URL so it survives as a query parameter
         guard let encoded = urlString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
               let ytmdURL = URL(string: "ytmd://navigate?url=\(encoded)")
-        else {
-            print("[PomodoroMusicCoordinator] ytmd:// scheme: could not build URL")
-            return false
-        }
+        else { return false }
 
-        // Pre-check: bail silently if no app is registered for ytmd://
         guard NSWorkspace.shared.urlForApplication(toOpen: ytmdURL) != nil else {
-            print("[PomodoroMusicCoordinator] ytmd:// scheme: no handler registered — navigation not available")
-            print("[PomodoroMusicCoordinator] Continuing with current YTMD content (play + shuffle only)")
             return false
         }
 
         let opened = NSWorkspace.shared.open(ytmdURL)
         if opened {
-            print("[PomodoroMusicCoordinator] ytmd:// scheme: dispatched \(ytmdURL.absoluteString)")
-        } else {
-            print("[PomodoroMusicCoordinator] ytmd:// scheme: open returned false")
+            print("[PomodoroMusicCoordinator] ytmd:// scheme: dispatched")
         }
         return opened
     }
 
-    // MARK: - Diagnostic Route Probe
-
-    /// Makes a single diagnostic GET to the API root to log what routes YTMD actually exposes.
-    /// Called once when all navigation strategies have failed — helps with future debugging.
-    private func probeAndLogAvailableRoutes() async {
-        guard let token = await getToken() else { return }
-
-        // Try a few candidate navigation-related endpoints so the user can see in console
-        // what HTTP status each returns — useful for identifying the correct path.
-        let candidates = [
-            "/api/v1/navigate",
-            "/api/v1/navigation",
-            "/api/v1/queue",
-            "/api/v1/song",
-        ]
-
-        print("[PomodoroMusicCoordinator] ── Navigation unavailable. Probing YTMD API endpoints ──")
-        await withTaskGroup(of: Void.self) { group in
-            for path in candidates {
-                group.addTask {
-                    guard let url = URL(string: "\(self.baseURL)\(path)") else { return }
-                    var req = URLRequest(url: url)
-                    req.httpMethod = "GET"
-                    req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-                    if let (_, resp) = try? await self.session.data(for: req),
-                       let http = resp as? HTTPURLResponse {
-                        print("[PomodoroMusicCoordinator]   \(path) → HTTP \(http.statusCode)")
-                    }
-                }
-            }
+    /// Strategy 3: POST /api/v1/queue with a videoId or playlistId extracted from the URL.
+    ///
+    /// Supported URL shapes:
+    ///   https://music.youtube.com/watch?v=VIDEO_ID   → { "videoId": "VIDEO_ID" }
+    ///   https://music.youtube.com/playlist?list=ID   → { "playlistId": "ID" }
+    ///
+    /// The first call also logs the current GET /api/v1/queue response for diagnostics.
+    private func navigateViaQueue(url: URL) async -> Bool {
+        guard let payload = queuePayload(for: url) else {
+            print("[PomodoroMusicCoordinator] Queue navigate: could not extract videoId/playlistId from URL")
+            return false
         }
-        print("[PomodoroMusicCoordinator] ─────────────────────────────────────────────────────")
-        print("[PomodoroMusicCoordinator] Playback will use current YTMD content. To enable")
-        print("[PomodoroMusicCoordinator] playlist switching, ensure the Navigation plugin in")
-        print("[PomodoroMusicCoordinator] YTMD exposes /api/v1/navigate via the API Server plugin.")
+
+        guard let token = await getToken() else { return false }
+
+        // Log current queue format once (helps diagnose the endpoint's response shape)
+        if !hasLoggedQueueFormat {
+            hasLoggedQueueFormat = true
+            await logQueueState(token: token)
+        }
+
+        guard let endpoint = URL(string: "\(baseURL)/api/v1/queue") else { return false }
+
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try? JSONSerialization.data(withJSONObject: payload)
+
+        guard let (data, response) = try? await session.data(for: request),
+              let http = response as? HTTPURLResponse
+        else {
+            print("[PomodoroMusicCoordinator] Queue navigate: no response")
+            return false
+        }
+
+        let body = String(data: data, encoding: .utf8) ?? ""
+        print("[PomodoroMusicCoordinator] Queue POST payload: \(payload)")
+        print("[PomodoroMusicCoordinator] Queue POST → HTTP \(http.statusCode), body: \(body)")
+
+        if http.statusCode == 401 { cachedToken = nil }
+
+        guard (200..<300).contains(http.statusCode) else { return false }
+
+        print("[PomodoroMusicCoordinator] Queue navigate: success")
+        return true
+    }
+
+    /// Extract the queue POST payload from a YouTube Music URL.
+    /// Returns nil if the URL shape isn't recognised.
+    private func queuePayload(for url: URL) -> [String: String]? {
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              let host = url.host, host.contains("music.youtube.com")
+        else { return nil }
+
+        let items = components.queryItems ?? []
+
+        // watch?v=VIDEO_ID  (optionally also &list=PLAYLIST_ID for a song in a playlist context)
+        if url.path.contains("/watch"),
+           let videoId = items.first(where: { $0.name == "v" })?.value {
+            var payload: [String: String] = ["videoId": videoId]
+            if let listId = items.first(where: { $0.name == "list" })?.value {
+                payload["playlistId"] = listId
+            }
+            return payload
+        }
+
+        // playlist?list=PLAYLIST_ID
+        if url.path.contains("/playlist"),
+           let listId = items.first(where: { $0.name == "list" })?.value {
+            return ["playlistId": listId]
+        }
+
+        return nil
+    }
+
+    /// Log the current GET /api/v1/queue response body for diagnostics.
+    private func logQueueState(token: String) async {
+        guard let url = URL(string: "\(baseURL)/api/v1/queue") else { return }
+        var req = URLRequest(url: url)
+        req.httpMethod = "GET"
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+        guard let (data, resp) = try? await session.data(for: req),
+              let http = resp as? HTTPURLResponse
+        else { return }
+
+        let body = String(data: data, encoding: .utf8) ?? "(no body)"
+        print("[PomodoroMusicCoordinator] GET /api/v1/queue → HTTP \(http.statusCode)")
+        print("[PomodoroMusicCoordinator] Queue body: \(body)")
     }
 
     // MARK: - Direct YTMD HTTP Commands
