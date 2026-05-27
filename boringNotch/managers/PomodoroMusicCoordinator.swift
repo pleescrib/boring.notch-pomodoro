@@ -12,10 +12,14 @@ import Foundation
 /// Targets YTMD directly via its companion HTTP API so Pomodoro transitions
 /// work regardless of the app-wide music controller preference.
 ///
-/// Navigation strategy (tried in order, fails silently at each step):
-///   1. POST /api/v1/navigate  — companion API (requires Navigation plugin)
-///   2. AppleScript `open location` — works with many Electron apps on macOS
-///   3. Continue with play/shuffle only — no error dialogs, music keeps going
+/// Navigation strategy (tried in order, no dialogs on failure):
+///   1. POST /api/v1/navigate  — companion API (requires Navigation plugin to
+///      register this route; returns 404 in most YTMD builds)
+///   2. ytmd:// custom URL scheme — YTMD registers ytmd:// via
+///      app.setAsDefaultProtocolClient; opening ytmd://navigate?url=<encoded>
+///      triggers YTMD's open-url Electron handler. A scheme pre-check ensures
+///      we never open this if YTMD hasn't registered it (avoids OS dialogs).
+///   3. Silent continue — play/shuffle the current content with no error.
 final class PomodoroMusicCoordinator {
 
     // MARK: - YTMD companion API config
@@ -32,6 +36,7 @@ final class PomodoroMusicCoordinator {
     }()
 
     private var pendingTask: Task<Void, Never>?
+    private var hasLoggedAvailableRoutes = false
 
     // MARK: - Phase Events
 
@@ -89,13 +94,26 @@ final class PomodoroMusicCoordinator {
         guard !Task.isCancelled else { return }
 
         // Navigate to the configured URL (best-effort, silent on failure)
+        var navigated = false
         if !urlString.isEmpty, let url = URL(string: urlString) {
-            let navigated = await navigateViaAPI(to: url)
+            // Strategy 1: companion API /navigate endpoint
+            navigated = await navigateViaAPI(to: url)
+
+            // Strategy 2: ytmd:// custom URL scheme
             if !navigated {
-                await navigateViaAppleScript(urlString: urlString)
+                navigated = await navigateViaYTMDScheme(urlString: urlString)
             }
-            // Give YTMD time to load the new content
-            try? await Task.sleep(for: .seconds(2))
+
+            if navigated {
+                // Give YTMD time to load the new content before we resume playback
+                try? await Task.sleep(for: .seconds(2))
+            } else {
+                // Log available routes once so the user can see what YTMD actually exposes
+                if !hasLoggedAvailableRoutes {
+                    hasLoggedAvailableRoutes = true
+                    await probeAndLogAvailableRoutes()
+                }
+            }
             guard !Task.isCancelled else { return }
         }
 
@@ -111,9 +129,11 @@ final class PomodoroMusicCoordinator {
         }
     }
 
-    // MARK: - Navigation
+    // MARK: - Navigation Strategies
 
-    /// Try the companion API /navigate endpoint (requires YTMD Navigation plugin to expose it).
+    /// Strategy 1: POST /api/v1/navigate via YTMD companion API.
+    /// Requires the Navigation plugin to register this route with the API Server.
+    /// Returns true on HTTP 2xx, false otherwise (no dialogs on failure).
     private func navigateViaAPI(to url: URL) async -> Bool {
         guard let token = await getToken() else { return false }
         guard let endpoint = URL(string: "\(baseURL)/api/v1/navigate") else { return false }
@@ -134,7 +154,7 @@ final class PomodoroMusicCoordinator {
         if http.statusCode == 401 { cachedToken = nil }
 
         guard (200..<300).contains(http.statusCode) else {
-            print("[PomodoroMusicCoordinator] API navigate: HTTP \(http.statusCode) — trying AppleScript fallback")
+            print("[PomodoroMusicCoordinator] API navigate: HTTP \(http.statusCode) — trying ytmd:// scheme")
             return false
         }
 
@@ -142,20 +162,75 @@ final class PomodoroMusicCoordinator {
         return true
     }
 
-    /// Try AppleScript `open location` — works with Electron apps that handle URL events.
-    private func navigateViaAppleScript(urlString: String) async {
-        let escaped = urlString.replacingOccurrences(of: "\"", with: "\\\"")
-        let script = """
-        tell application "YouTube Music"
-            open location "\(escaped)"
-        end tell
-        """
-        do {
-            try await AppleScriptHelper.executeVoid(script)
-            print("[PomodoroMusicCoordinator] AppleScript navigate: success")
-        } catch {
-            print("[PomodoroMusicCoordinator] AppleScript navigate: \(error.localizedDescription) — playing current content")
+    /// Strategy 2: Open ytmd://navigate?url=<encoded> via macOS URL scheme dispatch.
+    ///
+    /// th-ch/youtube-music registers itself as the handler for the ytmd:// scheme
+    /// via app.setAsDefaultProtocolClient('ytmd'). Opening a ytmd:// URL triggers
+    /// YTMD's Electron open-url event handler, which can navigate the main window.
+    ///
+    /// A handler pre-check via NSWorkspace ensures we never trigger an OS "no
+    /// application found" error dialog when the scheme isn't registered.
+    @MainActor
+    private func navigateViaYTMDScheme(urlString: String) async -> Bool {
+        // Percent-encode the inner URL so it survives as a query parameter
+        guard let encoded = urlString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+              let ytmdURL = URL(string: "ytmd://navigate?url=\(encoded)")
+        else {
+            print("[PomodoroMusicCoordinator] ytmd:// scheme: could not build URL")
+            return false
         }
+
+        // Pre-check: bail silently if no app is registered for ytmd://
+        guard NSWorkspace.shared.urlForApplication(toOpen: ytmdURL) != nil else {
+            print("[PomodoroMusicCoordinator] ytmd:// scheme: no handler registered — navigation not available")
+            print("[PomodoroMusicCoordinator] Continuing with current YTMD content (play + shuffle only)")
+            return false
+        }
+
+        let opened = NSWorkspace.shared.open(ytmdURL)
+        if opened {
+            print("[PomodoroMusicCoordinator] ytmd:// scheme: dispatched \(ytmdURL.absoluteString)")
+        } else {
+            print("[PomodoroMusicCoordinator] ytmd:// scheme: open returned false")
+        }
+        return opened
+    }
+
+    // MARK: - Diagnostic Route Probe
+
+    /// Makes a single diagnostic GET to the API root to log what routes YTMD actually exposes.
+    /// Called once when all navigation strategies have failed — helps with future debugging.
+    private func probeAndLogAvailableRoutes() async {
+        guard let token = await getToken() else { return }
+
+        // Try a few candidate navigation-related endpoints so the user can see in console
+        // what HTTP status each returns — useful for identifying the correct path.
+        let candidates = [
+            "/api/v1/navigate",
+            "/api/v1/navigation",
+            "/api/v1/queue",
+            "/api/v1/song",
+        ]
+
+        print("[PomodoroMusicCoordinator] ── Navigation unavailable. Probing YTMD API endpoints ──")
+        await withTaskGroup(of: Void.self) { group in
+            for path in candidates {
+                group.addTask {
+                    guard let url = URL(string: "\(self.baseURL)\(path)") else { return }
+                    var req = URLRequest(url: url)
+                    req.httpMethod = "GET"
+                    req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+                    if let (_, resp) = try? await self.session.data(for: req),
+                       let http = resp as? HTTPURLResponse {
+                        print("[PomodoroMusicCoordinator]   \(path) → HTTP \(http.statusCode)")
+                    }
+                }
+            }
+        }
+        print("[PomodoroMusicCoordinator] ─────────────────────────────────────────────────────")
+        print("[PomodoroMusicCoordinator] Playback will use current YTMD content. To enable")
+        print("[PomodoroMusicCoordinator] playlist switching, ensure the Navigation plugin in")
+        print("[PomodoroMusicCoordinator] YTMD exposes /api/v1/navigate via the API Server plugin.")
     }
 
     // MARK: - Direct YTMD HTTP Commands

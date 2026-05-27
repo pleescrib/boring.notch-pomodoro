@@ -1,0 +1,62 @@
+AddInstanceForFactory: No factory registered for id <CFUUID 0xa8d547ba0> F8BB1C28-BAE8-11D6-9C31-00039315CD46
+cannot open file at line 51044 of [f0ca7bba1c]
+os_unix.c:51044: (2) open(/private/var/db/DetachedSignatures) - No such file or directory
+PRECONDITION FAILURE: Process is sandboxed but 'com.apple.security.exception.mach-lookup.global-name' doesn't contain 'com.apple.audioanalyticsd'.
+Reporter disconnected or already stopped. { func=stop, reporterID=44341242363905 }
+More than one bundle with the same factory UUID detected: {
+    "ff5ed090-1521-11ea-8d71-362b9e155667" = "BlackHole_Create";
+} in CFBundle 0xa8e076ae0 </Library/Audio/Plug-Ins/HAL/SteamStreamingSpeakers.driver> (not loaded) and CFBundle/CFPlugIn 0xa8e076760 </Library/Audio/Plug-Ins/HAL/SteamStreamingMicrophone.driver> (not loaded)
+CMIO_DAL_CMIOExtension_Device.mm:373:Device legacy uuid isn't present, using new style uuid instead
+CMIO_DAL_CMIOExtension_Device.mm:373:Device legacy uuid isn't present, using new style uuid instead
+Unable to obtain a task name port right for pid 430: (os/kern) failure (0x5)
+CGImageDestinationCreateWithData:5555: *** ERROR: CGImageDestinationCreateWithData: invalid capacity (0)
+finalizeDestination:4331: *** ERROR: CGImageDestinationFinalize was called, but there were no images added
+CGImageDestinationCreateWithData:5555: *** ERROR: CGImageDestinationCreateWithData: invalid capacity (0)
+finalizeDestination:4331: *** ERROR: CGImageDestinationFinalize was called, but there were no images added
+CGImageDestinationCreateWithData:5555: *** ERROR: CGImageDestinationCreateWithData: invalid capacity (0)
+finalizeDestination:4331: *** ERROR: CGImageDestinationFinalize was called, but there were no images added
+CGImageDestinationCreateWithData:5555: *** ERROR: CGImageDestinationCreateWithData: invalid capacity (0)
+finalizeDestination:4331: *** ERROR: CGImageDestinationFinalize was called, but there were no images added
+CGImageDestinationCreateWithData:5555: *** ERROR: CGImageDestinationCreateWithData: invalid capacity (0)
+finalizeDestination:4331: *** ERROR: CGImageDestinationFinalize was called, but there were no images added
+CGImageDestinationCreateWithData:5555: *** ERROR: CGImageDestinationCreateWithData: invalid capacity (0)
+finalizeDestination:4331: *** ERROR: CGImageDestinationFinalize was called, but there were no images added
+CGImageDestinationCreateWithData:5555: *** ERROR: CGImageDestinationCreateWithData: invalid capacity (0)
+finalizeDestination:4331: *** ERROR: CGImageDestinationFinalize was called, but there were no images added
+CGImageDestinationCreateWithData:5555: *** ERROR: CGImageDestinationCreateWithData: invalid capacity (0)
+finalizeDestination:4331: *** ERROR: CGImageDestinationFinalize was called, but there were no images added
+Warning: Background app automatically schedules for update checks but does not implement gentle reminders. As a result, users may not take notice to update alerts that show up in the background. Please visit https://sparkle-project.org/documentation/gentle-reminders for more information. This warning will only be logged once.
+Deprecation check completed: false
+Preferred Media Controller: youtubeMusic
+nw_socket_handle_socket_event [C1.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C1.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+nw_socket_handle_socket_event [C2.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C2.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+Not showing popover because the view has no window (YES) or we're no longer retaining the Share Sheet remote view controller (NO)
+ViewBridge to RemoteViewService Terminated: Error Domain=com.apple.ViewBridge Code=18 "(null)" UserInfo={com.apple.ViewBridge.error.hint=this process disconnected remote view controller -- benign unless unexpected, com.apple.ViewBridge.error.description=NSViewBridgeErrorCanceled}
+nw_socket_handle_socket_event [C4.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C4.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+nw_socket_handle_socket_event [C5.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C5.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+[PomodoroMusicCoordinator] API navigate: HTTP 404 — trying AppleScript fallback
+FSFindFolder failed with error=-43
+FSFindFolder failed with error=-43
+Rule path is not accessible: /var/protected/xprotect/XProtect.bundle/Contents/Resources/XPScripts.yr
+Error reading rules: (null)
+[PomodoroMusicCoordinator] AppleScript navigate: The operation couldn’t be completed. (AppleScriptError error 1.) — playing current content
+nw_socket_handle_socket_event [C6.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C6.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+Playback state changed: Playing
+Playback state changed: Paused
+[PomodoroMusicCoordinator] API navigate: HTTP 404 — trying AppleScript fallback
+Rule path is not accessible: /var/protected/xprotect/XProtect.bundle/Contents/Resources/XPScripts.yr
+Error reading rules: (null)
+[PomodoroMusicCoordinator] AppleScript navigate: The operation couldn’t be completed. (AppleScriptError error 1.) — playing current content
+Playback state changed: Playing
+Playback state changed: Paused
+[PomodoroMusicCoordinator] API navigate: HTTP 404 — trying AppleScript fallback
+Rule path is not accessible: /var/protected/xprotect/XProtect.bundle/Contents/Resources/XPScripts.yr
+Error reading rules: (null)
+[PomodoroMusicCoordinator] AppleScript navigate: The operation couldn’t be completed. (AppleScriptError error 1.) — playing current content
+Playback state changed: Playing
+Playback state changed: Paused
