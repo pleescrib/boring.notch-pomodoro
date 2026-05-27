@@ -15,11 +15,15 @@ import Foundation
 /// Navigation strategy (tried in order, no dialogs on failure):
 ///   1. POST /api/v1/navigate  — companion API (404 in most YTMD builds)
 ///   2. ytmd:// custom URL scheme — not registered on most machines
-///   3. POST /api/v1/queue with { videoId, [playlistId] } extracted from URL
-///      - watch?v=V         → { "videoId": "V" }
-///      - watch?v=V&list=L  → { "videoId": "V", "playlistId": "L" }
-///      - playlist?list=L   → { "videoId": "L" }  (uses list ID as video ID;
-///                             passes Zod type validation, result may vary)
+///   3. POST /api/v1/queue + POST /api/v1/next
+///        • Adds the track with queueInsertionType=INSERT_AFTER_CURRENT_VIDEO
+///          so it occupies the "play next" slot, then /next skips to it.
+///        • URL → payload:
+///            watch?v=V        → { videoId: V }
+///            watch?v=V&list=L → { videoId: V, playlistId: L }
+///            playlist?list=L  → { videoId: L }  (list ID as videoId; passes
+///                               Zod string check; for reliable playlist support
+///                               use watch?v=TRACK_ID&list=L instead)
 ///   4. Silent continue — play/shuffle the current content
 final class PomodoroMusicCoordinator {
 
@@ -65,14 +69,12 @@ final class PomodoroMusicCoordinator {
         }
     }
 
-    /// Called when the timer is paused mid-phase.
     func timerPaused() {
         guard Defaults[.pomodoroYTMEnabled] else { return }
         pendingTask?.cancel()
         Task { await sendCommand("/pause") }
     }
 
-    /// Called when the timer resumes mid-phase (no phase change).
     func timerResumed() {
         guard Defaults[.pomodoroYTMEnabled] else { return }
         Task { await sendCommand("/play") }
@@ -88,15 +90,13 @@ final class PomodoroMusicCoordinator {
             return
         }
 
-        // Snapshot what's playing NOW so we can confirm whether navigation worked
         let songBefore = await currentSongTitle()
 
-        // Pause current playback before switching content
+        // Pause current playback
         await sendCommand("/pause")
         try? await Task.sleep(for: .milliseconds(300))
         guard !Task.isCancelled else { return }
 
-        // Navigate to the configured URL (best-effort, silent on failure)
         var navigated = false
         if !urlString.isEmpty, let url = URL(string: urlString) {
             navigated = await navigateViaAPI(to: url)
@@ -106,21 +106,20 @@ final class PomodoroMusicCoordinator {
             }
 
             if !navigated {
-                navigated = await navigateViaQueue(url: url)
+                navigated = await navigateViaQueueAndSkip(url: url)
             }
 
             if navigated {
-                // Give YTMD time to load the new content before resuming playback
-                try? await Task.sleep(for: .seconds(2))
+                // Short wait for YTMD to load the track after the skip
+                try? await Task.sleep(for: .milliseconds(800))
 
-                // Confirm whether the track actually changed
                 let songAfter = await currentSongTitle()
                 if let before = songBefore, let after = songAfter {
                     if before != after {
                         print("[PomodoroMusicCoordinator] Track changed: '\(before)' → '\(after)'")
                     } else {
-                        print("[PomodoroMusicCoordinator] Queue POST returned 200 but track unchanged ('\(after)')")
-                        print("[PomodoroMusicCoordinator] The video may have been added to the queue end rather than playing immediately.")
+                        print("[PomodoroMusicCoordinator] Track unchanged after navigation ('\(after)')")
+                        print("[PomodoroMusicCoordinator] Hint: if using a playlist URL, try watch?v=TRACK&list=PLAYLIST_ID")
                     }
                 }
             } else {
@@ -129,10 +128,10 @@ final class PomodoroMusicCoordinator {
             guard !Task.isCancelled else { return }
         }
 
-        // Start playback for this phase
+        // Ensure playback is running for this phase
         await sendCommand("/play")
 
-        // Sync shuffle state with the phase preference
+        // Sync shuffle state
         try? await Task.sleep(for: .milliseconds(400))
         guard !Task.isCancelled else { return }
 
@@ -143,7 +142,6 @@ final class PomodoroMusicCoordinator {
 
     // MARK: - Navigation Strategies
 
-    /// Strategy 1: POST /api/v1/navigate via YTMD companion API.
     private func navigateViaAPI(to url: URL) async -> Bool {
         guard let token = await getToken() else { return false }
         guard let endpoint = URL(string: "\(baseURL)/api/v1/navigate") else { return false }
@@ -160,39 +158,32 @@ final class PomodoroMusicCoordinator {
 
         if http.statusCode == 401 { cachedToken = nil }
 
-        guard (200..<300).contains(http.statusCode) else {
-            return false
-        }
+        guard (200..<300).contains(http.statusCode) else { return false }
 
         print("[PomodoroMusicCoordinator] API navigate: success")
         return true
     }
 
-    /// Strategy 2: ytmd:// URL scheme.
     @MainActor
     private func navigateViaYTMDScheme(urlString: String) async -> Bool {
         guard let encoded = urlString.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
               let ytmdURL = URL(string: "ytmd://navigate?url=\(encoded)")
         else { return false }
 
-        guard NSWorkspace.shared.urlForApplication(toOpen: ytmdURL) != nil else {
-            return false
-        }
+        guard NSWorkspace.shared.urlForApplication(toOpen: ytmdURL) != nil else { return false }
 
         let opened = NSWorkspace.shared.open(ytmdURL)
         if opened { print("[PomodoroMusicCoordinator] ytmd:// scheme: dispatched") }
         return opened
     }
 
-    /// Strategy 3: POST /api/v1/queue.
+    /// Strategy 3: POST /api/v1/queue to add the track as "play next",
+    /// then POST /api/v1/next to skip to it immediately.
     ///
-    /// URL → payload mapping:
-    ///   watch?v=V         → { "videoId": "V" }
-    ///   watch?v=V&list=L  → { "videoId": "V", "playlistId": "L" }
-    ///   playlist?list=L   → { "videoId": "L" }   playlist ID used as videoId;
-    ///                        passes YTMD's Zod string check. For reliable playlist
-    ///                        loading, configure a watch?v=…&list=… URL instead.
-    private func navigateViaQueue(url: URL) async -> Bool {
+    /// `queueInsertionType: INSERT_AFTER_CURRENT_VIDEO` is the YouTube Music
+    /// internal parameter for "play next" positioning. Whether YTMD forwards
+    /// it depends on the API Server version, but it costs nothing to include.
+    private func navigateViaQueueAndSkip(url: URL) async -> Bool {
         guard let payload = queuePayload(for: url) else {
             print("[PomodoroMusicCoordinator] Queue navigate: unrecognised URL shape — skipping")
             return false
@@ -200,7 +191,6 @@ final class PomodoroMusicCoordinator {
 
         guard let token = await getToken() else { return false }
 
-        // Log the GET queue body once so we know the response shape
         if !hasLoggedQueueFormat {
             hasLoggedQueueFormat = true
             await logQueueState(token: token)
@@ -217,24 +207,27 @@ final class PomodoroMusicCoordinator {
         guard let (data, response) = try? await session.data(for: request),
               let http = response as? HTTPURLResponse
         else {
-            print("[PomodoroMusicCoordinator] Queue navigate: no response")
+            print("[PomodoroMusicCoordinator] Queue POST: no response")
             return false
         }
 
         let body = String(data: data, encoding: .utf8) ?? ""
         print("[PomodoroMusicCoordinator] Queue POST payload: \(payload)")
-        print("[PomodoroMusicCoordinator] Queue POST → HTTP \(http.statusCode), body: \(body)")
+        print("[PomodoroMusicCoordinator] Queue POST → HTTP \(http.statusCode)\(body.isEmpty ? "" : ", body: \(body)")")
 
         if http.statusCode == 401 { cachedToken = nil }
-
         guard (200..<300).contains(http.statusCode) else { return false }
 
-        print("[PomodoroMusicCoordinator] Queue POST accepted")
-        return true
+        // The track is now in the queue. Skip to it with /next.
+        try? await Task.sleep(for: .milliseconds(300))
+        let skipped = await sendCommand("/next")
+        print("[PomodoroMusicCoordinator] /next after queue POST: \(skipped ? "dispatched" : "failed")")
+
+        return skipped
     }
 
     /// Build the POST /api/v1/queue payload from a YouTube Music URL.
-    private func queuePayload(for url: URL) -> [String: String]? {
+    private func queuePayload(for url: URL) -> [String: Any]? {
         guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
               let host = url.host, host.contains("music.youtube.com")
         else { return nil }
@@ -244,30 +237,32 @@ final class PomodoroMusicCoordinator {
         // watch?v=VIDEO_ID[&list=PLAYLIST_ID]
         if url.path.contains("/watch"),
            let videoId = items.first(where: { $0.name == "v" })?.value {
-            var payload: [String: String] = ["videoId": videoId]
+            var payload: [String: Any] = [
+                "videoId": videoId,
+                "queueInsertionType": "INSERT_AFTER_CURRENT_VIDEO"
+            ]
             if let listId = items.first(where: { $0.name == "list" })?.value {
                 payload["playlistId"] = listId
             }
             return payload
         }
 
-        // playlist?list=PLAYLIST_ID — use playlist ID as the videoId string.
-        // This passes Zod's type check; YTMD may or may not play it directly.
-        // Better alternative: use a watch?v=TRACK_ID&list=PLAYLIST_ID URL.
+        // playlist?list=PLAYLIST_ID — use list ID as videoId (passes Zod string check)
         if url.path.contains("/playlist"),
            let listId = items.first(where: { $0.name == "list" })?.value {
-            print("[PomodoroMusicCoordinator] Playlist-only URL detected — using list ID as videoId.")
-            print("[PomodoroMusicCoordinator] Tip: for reliable playlist loading, use a URL like")
-            print("[PomodoroMusicCoordinator]   watch?v=ANY_TRACK_FROM_PLAYLIST&list=\(listId)")
-            return ["videoId": listId]
+            print("[PomodoroMusicCoordinator] Playlist-only URL: using list ID as videoId.")
+            print("[PomodoroMusicCoordinator] Tip: use watch?v=ANY_TRACK&list=\(listId) for reliable playlist loading.")
+            return [
+                "videoId": listId,
+                "queueInsertionType": "INSERT_AFTER_CURRENT_VIDEO"
+            ]
         }
 
         return nil
     }
 
-    // MARK: - Song Info Helpers
+    // MARK: - Diagnostics
 
-    /// Fetch the title of the currently playing track (for change-detection logging).
     private func currentSongTitle() async -> String? {
         guard let token = await getToken(),
               let url = URL(string: "\(baseURL)/api/v1/song")
@@ -294,14 +289,12 @@ final class PomodoroMusicCoordinator {
               let http = resp as? HTTPURLResponse
         else { return }
 
-        // Log first 500 chars only — the queue body is often very long
         let raw = String(data: data, encoding: .utf8) ?? "(empty)"
-        let preview = raw.count > 500 ? String(raw.prefix(500)) + "…" : raw
-        print("[PomodoroMusicCoordinator] GET /api/v1/queue → HTTP \(http.statusCode)")
-        print("[PomodoroMusicCoordinator] Queue preview: \(preview)")
+        let preview = raw.count > 300 ? String(raw.prefix(300)) + "…" : raw
+        print("[PomodoroMusicCoordinator] GET /api/v1/queue → HTTP \(http.statusCode): \(preview)")
     }
 
-    // MARK: - Direct YTMD HTTP Commands
+    // MARK: - YTMD HTTP Commands
 
     private func getToken() async -> String? {
         if let token = cachedToken { return token }
@@ -362,8 +355,6 @@ final class PomodoroMusicCoordinator {
 
         return state
     }
-
-    // MARK: - App Helpers
 
     private func isYTMDRunning() -> Bool {
         NSWorkspace.shared.runningApplications.contains { $0.bundleIdentifier == bundleID }

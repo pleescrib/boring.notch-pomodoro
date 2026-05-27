@@ -1,0 +1,109 @@
+AddInstanceForFactory: No factory registered for id <CFUUID 0xaf1cb7f40> F8BB1C28-BAE8-11D6-9C31-00039315CD46
+cannot open file at line 51044 of [f0ca7bba1c]
+os_unix.c:51044: (2) open(/private/var/db/DetachedSignatures) - No such file or directory
+PRECONDITION FAILURE: Process is sandboxed but 'com.apple.security.exception.mach-lookup.global-name' doesn't contain 'com.apple.audioanalyticsd'.
+Reporter disconnected or already stopped. { func=stop, reporterID=50190987821057 }
+More than one bundle with the same factory UUID detected: {
+    "ff5ed090-1521-11ea-8d71-362b9e155667" = "BlackHole_Create";
+} in CFBundle 0xaf1ca6840 </Library/Audio/Plug-Ins/HAL/SteamStreamingSpeakers.driver> (not loaded) and CFBundle/CFPlugIn 0xaf1ca65a0 </Library/Audio/Plug-Ins/HAL/SteamStreamingMicrophone.driver> (not loaded)
+CMIO_DAL_CMIOExtension_Device.mm:373:Device legacy uuid isn't present, using new style uuid instead
+CMIO_DAL_CMIOExtension_Device.mm:373:Device legacy uuid isn't present, using new style uuid instead
+Unable to obtain a task name port right for pid 430: (os/kern) failure (0x5)
+CGImageDestinationCreateWithData:5555: *** ERROR: CGImageDestinationCreateWithData: invalid capacity (0)
+finalizeDestination:4331: *** ERROR: CGImageDestinationFinalize was called, but there were no images added
+CGImageDestinationCreateWithData:5555: *** ERROR: CGImageDestinationCreateWithData: invalid capacity (0)
+finalizeDestination:4331: *** ERROR: CGImageDestinationFinalize was called, but there were no images added
+CGImageDestinationCreateWithData:5555: *** ERROR: CGImageDestinationCreateWithData: invalid capacity (0)
+finalizeDestination:4331: *** ERROR: CGImageDestinationFinalize was called, but there were no images added
+CGImageDestinationCreateWithData:5555: *** ERROR: CGImageDestinationCreateWithData: invalid capacity (0)
+finalizeDestination:4331: *** ERROR: CGImageDestinationFinalize was called, but there were no images added
+CGImageDestinationCreateWithData:5555: *** ERROR: CGImageDestinationCreateWithData: invalid capacity (0)
+finalizeDestination:4331: *** ERROR: CGImageDestinationFinalize was called, but there were no images added
+CGImageDestinationCreateWithData:5555: *** ERROR: CGImageDestinationCreateWithData: invalid capacity (0)
+finalizeDestination:4331: *** ERROR: CGImageDestinationFinalize was called, but there were no images added
+CGImageDestinationCreateWithData:5555: *** ERROR: CGImageDestinationCreateWithData: invalid capacity (0)
+finalizeDestination:4331: *** ERROR: CGImageDestinationFinalize was called, but there were no images added
+CGImageDestinationCreateWithData:5555: *** ERROR: CGImageDestinationCreateWithData: invalid capacity (0)
+finalizeDestination:4331: *** ERROR: CGImageDestinationFinalize was called, but there were no images added
+Warning: Background app automatically schedules for update checks but does not implement gentle reminders. As a result, users may not take notice to update alerts that show up in the background. Please visit https://sparkle-project.org/documentation/gentle-reminders for more information. This warning will only be logged once.
+Deprecation check completed: false
+Preferred Media Controller: youtubeMusic
+nw_socket_handle_socket_event [C1.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C1.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+nw_socket_handle_socket_event [C2.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C2.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+Playback state changed: Playing
+Not showing popover because the view has no window (YES) or we're no longer retaining the Share Sheet remote view controller (NO)
+nw_socket_handle_socket_event [C4.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C4.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+nw_socket_handle_socket_event [C5.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C5.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+Playback state changed: Paused
+[PomodoroMusicCoordinator] Playlist-only URL detected — using list ID as videoId.
+[PomodoroMusicCoordinator] Tip: for reliable playlist loading, use a URL like
+[PomodoroMusicCoordinator]   watch?v=ANY_TRACK_FROM_PLAYLIST&list=PL2_Zni0O-J7CUkNRb1_od8F_y9L-z6frY
+[PomodoroMusicCoordinator] GET /api/v1/queue → HTTP 200
+[PomodoroMusicCoordinator] Queue preview: {"items":[{"playlistPanelVideoRenderer":{"title":{"runs":[{"text":"Essential Fejká | Deep House Mix"}]},"longBylineText":{"runs":[{"text":"MrSuicideSheep","navigationEndpoint":{"clickTrackingParams":"CBgQyCAYACITCLrw9vi72pQDFY1anQYdDzAbssoBBMTepik=","browseEndpoint":{"browseId":"UC5nc_ZtjKW1htCVZVRxlQAQ","browseEndpointContextSupportedConfigs":{"browseEndpointContextMusicConfig":{"pageType":"MUSIC_PAGE_TYPE_USER_CHANNEL"}}}}},{"text":" • "},{"text":"123K views"},{"text":" • "},{"text":"2.6K like…
+[PomodoroMusicCoordinator] Queue POST payload: ["videoId": "PL2_Zni0O-J7CUkNRb1_od8F_y9L-z6frY"]
+[PomodoroMusicCoordinator] Queue POST → HTTP 204, body: 
+[PomodoroMusicCoordinator] Queue POST accepted
+[PomodoroMusicCoordinator] Queue POST returned 200 but track unchanged ('Marsh & Phenoir feat. Mariel Beausejour - Don't Wait (Frost Remix)')
+[PomodoroMusicCoordinator] The video may have been added to the queue end rather than playing immediately.
+Playback state changed: Playing
+Playback state changed: Paused
+[PomodoroMusicCoordinator] Queue POST payload: ["videoId": "hj83cwfOF3Y"]
+[PomodoroMusicCoordinator] Queue POST → HTTP 204, body: 
+[PomodoroMusicCoordinator] Queue POST accepted
+[PomodoroMusicCoordinator] Queue POST returned 200 but track unchanged ('Marsh & Phenoir feat. Mariel Beausejour - Don't Wait (Frost Remix)')
+[PomodoroMusicCoordinator] The video may have been added to the queue end rather than playing immediately.
+Playback state changed: Playing
+nw_socket_handle_socket_event [C6.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C6.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+nw_socket_handle_socket_event [C7.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C7.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+Playback state changed: Paused
+[PomodoroMusicCoordinator] Playlist-only URL detected — using list ID as videoId.
+[PomodoroMusicCoordinator] Tip: for reliable playlist loading, use a URL like
+[PomodoroMusicCoordinator]   watch?v=ANY_TRACK_FROM_PLAYLIST&list=PL2_Zni0O-J7CUkNRb1_od8F_y9L-z6frY
+[PomodoroMusicCoordinator] Queue POST payload: ["videoId": "PL2_Zni0O-J7CUkNRb1_od8F_y9L-z6frY"]
+[PomodoroMusicCoordinator] Queue POST → HTTP 204, body: 
+[PomodoroMusicCoordinator] Queue POST accepted
+[PomodoroMusicCoordinator] Queue POST returned 200 but track unchanged ('Marsh & Phenoir feat. Mariel Beausejour - Don't Wait (Frost Remix)')
+[PomodoroMusicCoordinator] The video may have been added to the queue end rather than playing immediately.
+Playback state changed: Playing
+nw_socket_handle_socket_event [C8.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C8.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+nw_socket_handle_socket_event [C9.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C9.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+ViewBridge to RemoteViewService Terminated: Error Domain=com.apple.ViewBridge Code=18 "(null)" UserInfo={com.apple.ViewBridge.error.hint=this process disconnected remote view controller -- benign unless unexpected, com.apple.ViewBridge.error.description=NSViewBridgeErrorCanceled}
+nw_socket_handle_socket_event [C10.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C10.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+nw_socket_handle_socket_event [C11.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C11.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+nw_socket_handle_socket_event [C12.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C12.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+Playback state changed: Paused
+nw_socket_handle_socket_event [C13.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C13.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+Playback state changed: Playing
+nw_socket_handle_socket_event [C14.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C14.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+nw_socket_handle_socket_event [C15.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C15.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+Playback state changed: Paused
+[PomodoroMusicCoordinator] Queue POST payload: ["videoId": "hj83cwfOF3Y"]
+[PomodoroMusicCoordinator] Queue POST → HTTP 204, body: 
+[PomodoroMusicCoordinator] Queue POST accepted
+[PomodoroMusicCoordinator] Queue POST returned 200 but track unchanged ('Marsh & Phenoir feat. Mariel Beausejour - Don't Wait (Frost Remix)')
+[PomodoroMusicCoordinator] The video may have been added to the queue end rather than playing immediately.
+Playback state changed: Playing
+nw_path_necp_check_for_updates Failed to copy updated result (22)
+nw_socket_handle_socket_event [C16.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C16.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+Playback state changed: Paused
+[PomodoroMusicCoordinator] Queue POST payload: ["videoId": "hOkBoJfTsxc", "playlistId": "PL2_Zni0O-J7CUkNRb1_od8F_y9L-z6frY"]
+[PomodoroMusicCoordinator] Queue POST → HTTP 204, body: 
+[PomodoroMusicCoordinator] Queue POST accepted
+[PomodoroMusicCoordinator] Queue POST returned 200 but track unchanged ('Marsh & Phenoir feat. Mariel Beausejour - Don't Wait (Frost Remix)')
+[PomodoroMusicCoordinator] The video may have been added to the queue end rather than playing immediately.
+Playback state changed: Playing
