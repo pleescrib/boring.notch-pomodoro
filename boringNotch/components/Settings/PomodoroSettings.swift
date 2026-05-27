@@ -177,9 +177,12 @@ struct PomodoroSettings: View {
             Text("YouTube Music")
         } footer: {
             if ytmEnabled {
-                Text("Paste a YouTube Music track or playlist URL for each phase. Leave blank to keep whatever is already playing. Requires the YouTube Music Desktop App.")
-                    .foregroundStyle(.secondary)
-                    .font(.caption)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Requires the YouTube Music Desktop App with the API Server plugin enabled.")
+                    Text("For a specific song: paste the share URL (watch?v=…). For a playlist: share any song from inside it, then append &list=PLAYLIST_ID to the URL. Leave a field blank to keep whatever is already playing.")
+                }
+                .foregroundStyle(.secondary)
+                .font(.caption)
             }
         }
     }
