@@ -9,14 +9,18 @@ import Foundation
 
 /// Coordinates YouTube Music playback with Pomodoro timer phases.
 ///
-/// Operates independently of the app-wide MusicManager/activeController so that
-/// Pomodoro phase transitions always target YTMD directly via its companion HTTP API,
-/// regardless of which music source the user has selected globally.
+/// Targets YTMD directly via its companion HTTP API so Pomodoro transitions
+/// work regardless of the app-wide music controller preference.
+///
+/// Navigation strategy (tried in order, fails silently at each step):
+///   1. POST /api/v1/navigate  — companion API (requires Navigation plugin)
+///   2. AppleScript `open location` — works with many Electron apps on macOS
+///   3. Continue with play/shuffle only — no error dialogs, music keeps going
 final class PomodoroMusicCoordinator {
 
     // MARK: - YTMD companion API config
-    private let baseURL    = YouTubeMusicConfiguration.default.baseURL
-    private let bundleID   = YouTubeMusicConfiguration.default.bundleIdentifier
+    private let baseURL  = YouTubeMusicConfiguration.default.baseURL
+    private let bundleID = YouTubeMusicConfiguration.default.bundleIdentifier
     private var cachedToken: String?
 
     private let session: URLSession = {
@@ -55,14 +59,15 @@ final class PomodoroMusicCoordinator {
         }
     }
 
+    /// Called when the timer is paused mid-phase.
     func timerPaused() {
         guard Defaults[.pomodoroYTMEnabled] else { return }
         pendingTask?.cancel()
         Task { await sendCommand("/pause") }
     }
 
-    /// Called when the timer resumes mid-phase (no phase change occurred).
-    /// Issues a simple play command — no URL navigation, no shuffle sync.
+    /// Called when the timer resumes mid-phase (no phase change).
+    /// Issues only a play command — no URL navigation, no shuffle sync.
     func timerResumed() {
         guard Defaults[.pomodoroYTMEnabled] else { return }
         Task { await sendCommand("/play") }
@@ -83,19 +88,13 @@ final class PomodoroMusicCoordinator {
         try? await Task.sleep(for: .milliseconds(300))
         guard !Task.isCancelled else { return }
 
-        // Navigate to the phase URL if one is configured
+        // Navigate to the configured URL (best-effort, silent on failure)
         if !urlString.isEmpty, let url = URL(string: urlString) {
             let navigated = await navigateViaAPI(to: url)
             if !navigated {
-                // Fallback A: attempt to open the URL targeting the YTMD app directly.
-                // YTMD (Electron) may not handle URL-document arguments, but we try.
-                let opened = await openURLInYTMD(url)
-                if !opened {
-                    // Fallback B: open in the system default browser/handler as a last resort.
-                    await MainActor.run { NSWorkspace.shared.open(url) }
-                    print("[PomodoroMusicCoordinator] Navigation plugin unavailable — opened URL in default browser as fallback")
-                }
+                await navigateViaAppleScript(urlString: urlString)
             }
+            // Give YTMD time to load the new content
             try? await Task.sleep(for: .seconds(2))
             guard !Task.isCancelled else { return }
         }
@@ -112,10 +111,56 @@ final class PomodoroMusicCoordinator {
         }
     }
 
+    // MARK: - Navigation
+
+    /// Try the companion API /navigate endpoint (requires YTMD Navigation plugin to expose it).
+    private func navigateViaAPI(to url: URL) async -> Bool {
+        guard let token = await getToken() else { return false }
+        guard let endpoint = URL(string: "\(baseURL)/api/v1/navigate") else { return false }
+
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try? JSONEncoder().encode(["url": url.absoluteString])
+
+        guard let (_, response) = try? await session.data(for: request),
+              let http = response as? HTTPURLResponse
+        else {
+            print("[PomodoroMusicCoordinator] API navigate: no response")
+            return false
+        }
+
+        if http.statusCode == 401 { cachedToken = nil }
+
+        guard (200..<300).contains(http.statusCode) else {
+            print("[PomodoroMusicCoordinator] API navigate: HTTP \(http.statusCode) — trying AppleScript fallback")
+            return false
+        }
+
+        print("[PomodoroMusicCoordinator] API navigate: success")
+        return true
+    }
+
+    /// Try AppleScript `open location` — works with Electron apps that handle URL events.
+    private func navigateViaAppleScript(urlString: String) async {
+        let escaped = urlString.replacingOccurrences(of: "\"", with: "\\\"")
+        let script = """
+        tell application "YouTube Music"
+            open location "\(escaped)"
+        end tell
+        """
+        do {
+            try await AppleScriptHelper.executeVoid(script)
+            print("[PomodoroMusicCoordinator] AppleScript navigate: success")
+        } catch {
+            print("[PomodoroMusicCoordinator] AppleScript navigate: \(error.localizedDescription) — playing current content")
+        }
+    }
+
     // MARK: - Direct YTMD HTTP Commands
 
-    /// Authenticate against the YTMD companion API and cache the token.
-    private func getToken(retry: Bool = true) async -> String? {
+    private func getToken() async -> String? {
         if let token = cachedToken { return token }
 
         guard let url = URL(string: "\(baseURL)/auth/boringNotch") else { return nil }
@@ -133,7 +178,6 @@ final class PomodoroMusicCoordinator {
         return response.accessToken
     }
 
-    /// Send a playback command (play, pause, shuffle, etc.) to the YTMD companion API.
     @discardableResult
     private func sendCommand(_ endpoint: String, method: String = "POST") async -> Bool {
         guard let token = await getToken() else { return false }
@@ -147,49 +191,16 @@ final class PomodoroMusicCoordinator {
               let http = response as? HTTPURLResponse
         else { return false }
 
-        if http.statusCode == 401 {
-            cachedToken = nil
-            return false
-        }
-
-        guard (200..<300).contains(http.statusCode) else {
-            print("[PomodoroMusicCoordinator] Command \(endpoint) returned HTTP \(http.statusCode)")
-            return false
-        }
-
-        return true
-    }
-
-    /// Navigate YTMD to a specific YouTube Music URL via the Navigation plugin API.
-    /// Returns `true` on success, `false` if the plugin is not available or the call fails.
-    private func navigateViaAPI(to url: URL) async -> Bool {
-        guard let token = await getToken() else { return false }
-        guard let endpoint = URL(string: "\(baseURL)/api/v1/navigate") else { return false }
-
-        var request = URLRequest(url: endpoint)
-        request.httpMethod = "POST"
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try? JSONEncoder().encode(["url": url.absoluteString])
-
-        guard let (_, response) = try? await session.data(for: request),
-              let http = response as? HTTPURLResponse
-        else {
-            print("[PomodoroMusicCoordinator] Navigation API unreachable")
-            return false
-        }
-
         if http.statusCode == 401 { cachedToken = nil }
 
         guard (200..<300).contains(http.statusCode) else {
-            print("[PomodoroMusicCoordinator] Navigation API returned HTTP \(http.statusCode) — Navigation plugin may not be enabled")
+            print("[PomodoroMusicCoordinator] Command \(endpoint): HTTP \(http.statusCode)")
             return false
         }
 
         return true
     }
 
-    /// Fetch the current shuffle state from YTMD.
     private func getShuffleState() async -> Bool? {
         guard let token = await getToken(),
               let url = URL(string: "\(baseURL)/api/v1/shuffle")
@@ -209,31 +220,9 @@ final class PomodoroMusicCoordinator {
         return state
     }
 
-    // MARK: - App-level Helpers
+    // MARK: - App Helpers
 
     private func isYTMDRunning() -> Bool {
         NSWorkspace.shared.runningApplications.contains { $0.bundleIdentifier == bundleID }
     }
-
-    /// Attempt to open the URL in the YTMD app via NSWorkspace.
-    /// YTMD (Electron) may not handle URL arguments as documents, but this is the
-    /// standard macOS fallback path. Returns true if the open call was dispatched.
-    @discardableResult
-    @MainActor
-    private func openURLInYTMD(_ url: URL) -> Bool {
-        guard let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID)
-        else {
-            print("[PomodoroMusicCoordinator] YTMD app not found for URL fallback")
-            return false
-        }
-        let config = NSWorkspace.OpenConfiguration()
-        config.activates = true
-        NSWorkspace.shared.open([url], withApplicationAt: appURL, configuration: config) { _, error in
-            if let error {
-                print("[PomodoroMusicCoordinator] NSWorkspace URL open failed: \(error.localizedDescription)")
-            }
-        }
-        return true
-    }
 }
-
