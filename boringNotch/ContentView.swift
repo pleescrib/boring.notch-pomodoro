@@ -23,6 +23,7 @@ struct ContentView: View {
     @ObservedObject var batteryModel = BatteryStatusViewModel.shared
     @ObservedObject var brightnessManager = BrightnessManager.shared
     @ObservedObject var volumeManager = VolumeManager.shared
+    @ObservedObject var pomodoroManager = PomodoroManager.shared
     @State private var hoverTask: Task<Void, Never>?
     @State private var isHovering: Bool = false
     @State private var anyDropDebounceTask: Task<Void, Never>?
@@ -89,6 +90,16 @@ struct ContentView: View {
         }()
         
         ZStack(alignment: .top) {
+            // Pomodoro bezel bar — renders around the outside edge of the closed notch
+            if pomodoroManager.isRunning && vm.notchState == .closed && vm.effectiveClosedNotchHeight > 0 {
+                PomodoroBezelBar(
+                    progress: pomodoroManager.progress,
+                    notchWidth: vm.closedNotchSize.width,
+                    notchHeight: vm.effectiveClosedNotchHeight,
+                    bottomCornerRadius: cornerRadiusInsets.closed.bottom
+                )
+            }
+
             VStack(spacing: 0) {
                 let mainLayout = NotchLayout()
                     .frame(alignment: .top)
@@ -349,6 +360,8 @@ struct ContentView: View {
                         NotchHomeView(albumArtNamespace: albumArtNamespace)
                     case .shelf:
                         ShelfView()
+                    case .pomodoro:
+                        PomodoroHoverView()
                     }
                 }
                 .transition(

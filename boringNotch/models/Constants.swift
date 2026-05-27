@@ -199,4 +199,25 @@ extension Defaults.Keys {
     }
 
     static let didClearLegacyURLCacheV1 = Key<Bool>("didClearLegacyURLCache_v1", default: false)
+
+    // MARK: Pomodoro Timer
+    static let pomodoroPreset = Key<PomodoroPreset>("pomodoroPreset", default: .standard)
+    static let pomodoroWorkDuration = Key<Int>("pomodoroWorkDuration", default: 25)
+    static let pomodoroShortBreakDuration = Key<Int>("pomodoroShortBreakDuration", default: 5)
+    static let pomodoroLongBreakDuration = Key<Int>("pomodoroLongBreakDuration", default: 15)
+    static let pomodoroLongBreakEnabled = Key<Bool>("pomodoroLongBreakEnabled", default: false)
+    static let pomodoroCyclesBeforeLongBreak = Key<Int>("pomodoroCyclesBeforeLongBreak", default: 4)
+    static let pomodoroCustomWorkDuration = Key<Int>("pomodoroCustomWorkDuration", default: 25)
+    static let pomodoroCustomBreakDuration = Key<Int>("pomodoroCustomBreakDuration", default: 5)
+    static let pomodoroCycleCount = Key<Int>("pomodoroCycleCount", default: 0)
+    static let pomodoroSessionElapsed = Key<Int>("pomodoroSessionElapsed", default: 0)
+
+    // MARK: Pomodoro — YouTube Music Integration
+    static let pomodoroYTMEnabled = Key<Bool>("pomodoroYTMEnabled", default: false)
+    static let pomodoroYTMWorkURL = Key<String>("pomodoroYTMWorkURL", default: "")
+    static let pomodoroYTMBreakURL = Key<String>("pomodoroYTMBreakURL", default: "")
+    static let pomodoroYTMLongBreakURL = Key<String>("pomodoroYTMLongBreakURL", default: "")
+    static let pomodoroYTMWorkShuffle = Key<Bool>("pomodoroYTMWorkShuffle", default: false)
+    static let pomodoroYTMBreakShuffle = Key<Bool>("pomodoroYTMBreakShuffle", default: false)
+    static let pomodoroYTMLongBreakShuffle = Key<Bool>("pomodoroYTMLongBreakShuffle", default: false)
 }
