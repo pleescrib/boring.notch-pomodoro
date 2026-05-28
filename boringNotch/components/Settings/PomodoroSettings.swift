@@ -178,8 +178,10 @@ struct PomodoroSettings: View {
         } footer: {
             if ytmEnabled {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Requires the YouTube Music Desktop App with the API Server plugin enabled.")
-                    Text("For a specific song: paste the share URL (watch?v=…). For a playlist: share any song from inside it, then append &list=PLAYLIST_ID to the URL. Leave a field blank to keep whatever is already playing.")
+                    Text("Requires YouTube Music Desktop App with the API Server plugin.")
+                    Text("Paste a share URL from YouTube Music (watch?v=…). To play a specific playlist, share any song from inside it — the URL will look like watch?v=VIDEO&list=PLAYLIST_ID.")
+                    Text("Playlist-only links (playlist?list=…) are not supported — they have no video ID for the API to queue.")
+                        .foregroundStyle(.orange)
                 }
                 .foregroundStyle(.secondary)
                 .font(.caption)
@@ -193,14 +195,29 @@ struct PomodoroSettings: View {
             Text(label)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-            TextField("https://music.youtube.com/...", text: text)
+            TextField("https://music.youtube.com/watch?v=...", text: text)
                 .textFieldStyle(.roundedBorder)
                 .font(.system(.caption, design: .monospaced))
+            if isPlaylistOnlyURL(text.wrappedValue) {
+                Text("⚠ Playlist-only link — paste a watch?v= URL from a song inside that playlist instead")
+                    .font(.caption)
+                    .foregroundStyle(.orange)
+            }
             Toggle("Shuffle", isOn: shuffle)
                 .tint(.effectiveAccent)
                 .font(.subheadline)
         }
         .padding(.vertical, 4)
+    }
+
+    private func isPlaylistOnlyURL(_ string: String) -> Bool {
+        guard !string.isEmpty,
+              let url = URL(string: string),
+              let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        else { return false }
+        return url.path.contains("/playlist") &&
+               components.queryItems?.contains(where: { $0.name == "list" }) == true &&
+               components.queryItems?.contains(where: { $0.name == "v" }) != true
     }
 
     // MARK: - Preset Application
