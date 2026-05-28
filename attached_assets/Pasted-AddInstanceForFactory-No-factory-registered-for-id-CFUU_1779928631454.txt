@@ -1,0 +1,78 @@
+AddInstanceForFactory: No factory registered for id <CFUUID 0xbb7c55240> F8BB1C28-BAE8-11D6-9C31-00039315CD46
+cannot open file at line 51044 of [f0ca7bba1c]
+os_unix.c:51044: (2) open(/private/var/db/DetachedSignatures) - No such file or directory
+PRECONDITION FAILURE: Process is sandboxed but 'com.apple.security.exception.mach-lookup.global-name' doesn't contain 'com.apple.audioanalyticsd'.
+Reporter disconnected or already stopped. { func=stop, reporterID=53803055316993 }
+More than one bundle with the same factory UUID detected: {
+    "ff5ed090-1521-11ea-8d71-362b9e155667" = "BlackHole_Create";
+} in CFBundle 0xbb693ea00 </Library/Audio/Plug-Ins/HAL/SteamStreamingSpeakers.driver> (not loaded) and CFBundle/CFPlugIn 0xbb693eae0 </Library/Audio/Plug-Ins/HAL/SteamStreamingMicrophone.driver> (not loaded)
+CMIO_DAL_CMIOExtension_Device.mm:373:Device legacy uuid isn't present, using new style uuid instead
+CMIO_DAL_CMIOExtension_Device.mm:373:Device legacy uuid isn't present, using new style uuid instead
+Unable to obtain a task name port right for pid 430: (os/kern) failure (0x5)
+CGImageDestinationCreateWithData:5555: *** ERROR: CGImageDestinationCreateWithData: invalid capacity (0)
+finalizeDestination:4331: *** ERROR: CGImageDestinationFinalize was called, but there were no images added
+CGImageDestinationCreateWithData:5555: *** ERROR: CGImageDestinationCreateWithData: invalid capacity (0)
+finalizeDestination:4331: *** ERROR: CGImageDestinationFinalize was called, but there were no images added
+CGImageDestinationCreateWithData:5555: *** ERROR: CGImageDestinationCreateWithData: invalid capacity (0)
+finalizeDestination:4331: *** ERROR: CGImageDestinationFinalize was called, but there were no images added
+CGImageDestinationCreateWithData:5555: *** ERROR: CGImageDestinationCreateWithData: invalid capacity (0)
+finalizeDestination:4331: *** ERROR: CGImageDestinationFinalize was called, but there were no images added
+CGImageDestinationCreateWithData:5555: *** ERROR: CGImageDestinationCreateWithData: invalid capacity (0)
+finalizeDestination:4331: *** ERROR: CGImageDestinationFinalize was called, but there were no images added
+CGImageDestinationCreateWithData:5555: *** ERROR: CGImageDestinationCreateWithData: invalid capacity (0)
+finalizeDestination:4331: *** ERROR: CGImageDestinationFinalize was called, but there were no images added
+CGImageDestinationCreateWithData:5555: *** ERROR: CGImageDestinationCreateWithData: invalid capacity (0)
+finalizeDestination:4331: *** ERROR: CGImageDestinationFinalize was called, but there were no images added
+CGImageDestinationCreateWithData:5555: *** ERROR: CGImageDestinationCreateWithData: invalid capacity (0)
+finalizeDestination:4331: *** ERROR: CGImageDestinationFinalize was called, but there were no images added
+Warning: Background app automatically schedules for update checks but does not implement gentle reminders. As a result, users may not take notice to update alerts that show up in the background. Please visit https://sparkle-project.org/documentation/gentle-reminders for more information. This warning will only be logged once.
+Deprecation check completed: false
+Preferred Media Controller: youtubeMusic
+nw_socket_handle_socket_event [C1.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C1.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+nw_socket_handle_socket_event [C2.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C2.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+Not showing popover because the view has no window (YES) or we're no longer retaining the Share Sheet remote view controller (NO)
+ViewBridge to RemoteViewService Terminated: Error Domain=com.apple.ViewBridge Code=18 "(null)" UserInfo={com.apple.ViewBridge.error.hint=this process disconnected remote view controller -- benign unless unexpected, com.apple.ViewBridge.error.description=NSViewBridgeErrorCanceled}
+nw_socket_handle_socket_event [C4.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C4.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+nw_path_necp_check_for_updates Failed to copy updated result (22)
+nw_socket_handle_socket_event [C5.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C5.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+[PomodoroMusicCoordinator] GET /api/v1/queue → HTTP 200: {"items":[{"playlistPanelVideoRenderer":{"title":{"runs":[{"text":"Essential Fejká | Deep House Mix"}]},"longBylineText":{"runs":[{"text":"MrSuicideSheep","navigationEndpoint":{"clickTrackingParams":"CBgQyCAYACITCLrw9vi72pQDFY1anQYdDzAbssoBBMTepik=","browseEndpoint":{"browseId":"UC5nc_ZtjKW1htCVZVRx…
+[PomodoroMusicCoordinator] DELETE /queue: cleared (HTTP 204)
+[PomodoroMusicCoordinator] Queue POST payload: ["videoId": "y2ECgOhoDGs", "playlistId": "PL2_Zni0O-J7CUkNRb1_od8F_y9L-z6frY"]
+[PomodoroMusicCoordinator] Queue POST → HTTP 204
+[PomodoroMusicCoordinator] Queue strategy /next: dispatched
+[PomodoroMusicCoordinator] ✗ Track unchanged ('Where It Leads')
+[PomodoroMusicCoordinator]   Use watch?v=VIDEO_ID (not a playlist URL) for reliable switching.
+Playback state changed: Playing
+nw_socket_handle_socket_event [C6.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C6.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+nw_socket_connect [C7.1.1:2] connectx(13 (guarded), [srcif=0, srcaddr=<NULL>, dstaddr=::1.26538], SAE_ASSOCID_ANY, 0, NULL, 0, NULL, SAE_CONNID_ANY) failed: [61: Connection refused]
+nw_socket_connect [C7.1.1:2] connectx failed (fd 13) [61: Connection refused]
+nw_socket_connect connectx failed [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C7.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), interface: lo0)] already failing, returning
+Playback state changed: Paused
+[PomodoroMusicCoordinator] DELETE /queue: cleared (HTTP 204)
+[PomodoroMusicCoordinator] Queue POST payload: ["videoId": "hj83cwfOF3Y"]
+[PomodoroMusicCoordinator] Queue POST → HTTP 204
+[PomodoroMusicCoordinator] Queue strategy /next: dispatched
+[PomodoroMusicCoordinator] ✗ Track unchanged ('Where It Leads')
+[PomodoroMusicCoordinator]   Use watch?v=VIDEO_ID (not a playlist URL) for reliable switching.
+Playback state changed: Playing
+nw_socket_handle_socket_event [C8.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C8.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+nw_socket_handle_socket_event [C9.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C9.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+nw_socket_handle_socket_event [C10.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C10.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+Playback state changed: Paused
+[PomodoroMusicCoordinator] DELETE /queue: cleared (HTTP 204)
+[PomodoroMusicCoordinator] Queue POST payload: ["videoId": "y2ECgOhoDGs", "playlistId": "PL2_Zni0O-J7CUkNRb1_od8F_y9L-z6frY"]
+[PomodoroMusicCoordinator] Queue POST → HTTP 204
+[PomodoroMusicCoordinator] Queue strategy /next: dispatched
+[PomodoroMusicCoordinator] ✗ Track unchanged ('Where It Leads')
+[PomodoroMusicCoordinator]   Use watch?v=VIDEO_ID (not a playlist URL) for reliable switching.
+Playback state changed: Playing
+🔋 Battery level: 84%

@@ -9,41 +9,42 @@ import Foundation
 
 /// Coordinates YouTube Music playback with Pomodoro timer phases.
 ///
-/// Targets YTMD directly via its companion HTTP API (localhost:26538).
+/// Navigation strategy (tried in order, stops at first success):
 ///
-/// Navigation strategy (tried in order):
-///   1. POST /api/v1/navigate  — works in YTMD builds that have the Navigate plugin
-///   2. DELETE /api/v1/queue → POST /api/v1/queue → POST /api/v1/next
-///        • Clears the user queue so our track occupies the #1 slot, then /next plays it.
-///        • DELETE is not documented in all YTMD versions; falls back gracefully if 404/405.
-///   3. POST /api/v1/queue → POST /api/v1/next (without clearing)
-///        • Our track lands wherever the queue places it; /next still skips one forward.
-///        • Result may vary depending on existing queue depth.
-///   4. Silent continue — keep whatever is already playing, apply shuffle only.
+///   1. POST /api/v1/navigate  — available only when the Navigate plugin is enabled
+///      in YTMD and the API Server exposes it.
 ///
-/// URL → payload mapping (for queue POST):
-///   watch?v=V        → { videoId: V }
-///   watch?v=V&list=L → { videoId: V, playlistId: L }
-///   playlist?list=L  → not supported; user must supply a watch?v= link
+///   2. GET /api/v1/queue  →  POST /api/v1/queue  →  PATCH /api/v1/queue
+///      • GET: find which queue item has `selected = true` → currentIndex
+///      • POST body: { videoId, insertPosition: "INSERT_AFTER_CURRENT_VIDEO" [, playlistId] }
+///        → our track lands at currentIndex + 1
+///      • PATCH body: { index: currentIndex + 1 }
+///        → YTMD jumps directly to that track and starts playing it
+///
+///   3. Silent continue — play/shuffle from whatever is already loaded.
+///
+/// URL → API payload:
+///   watch?v=V          → { videoId: V, insertPosition: INSERT_AFTER_CURRENT_VIDEO }
+///   watch?v=V&list=L   → { videoId: V, insertPosition: ..., playlistId: L }
+///   playlist?list=L    → rejected (no video ID); the Settings UI warns the user.
 ///
 /// The `si` share-tracking parameter is stripped before parsing.
 final class PomodoroMusicCoordinator {
 
-    // MARK: - YTMD companion API config
+    // MARK: - YTMD config
     private let baseURL  = YouTubeMusicConfiguration.default.baseURL
     private let bundleID = YouTubeMusicConfiguration.default.bundleIdentifier
     private var cachedToken: String?
 
     private let session: URLSession = {
-        let config = URLSessionConfiguration.default
-        config.requestCachePolicy = .reloadIgnoringLocalCacheData
-        config.timeoutIntervalForRequest = 5
-        config.timeoutIntervalForResource = 10
-        return URLSession(configuration: config)
+        let cfg = URLSessionConfiguration.default
+        cfg.requestCachePolicy = .reloadIgnoringLocalCacheData
+        cfg.timeoutIntervalForRequest = 5
+        cfg.timeoutIntervalForResource = 10
+        return URLSession(configuration: cfg)
     }()
 
     private var pendingTask: Task<Void, Never>?
-    private var hasLoggedQueueOnce = false
 
     // MARK: - Phase Events
 
@@ -92,28 +93,29 @@ final class PomodoroMusicCoordinator {
             return
         }
 
-        // Snapshot title for change detection
         let titleBefore = await currentSongTitle()
 
-        // Pause before switching
+        // Pause current playback while we switch
         await sendCommand("/pause")
         try? await Task.sleep(for: .milliseconds(300))
         guard !Task.isCancelled else { return }
 
-        // Navigate if a URL was supplied
         var navigated = false
+
         if !urlString.isEmpty, let raw = URL(string: urlString) {
             let url = stripShareParam(raw)
 
+            // Strategy 1: API navigate endpoint (requires Navigate plugin)
             navigated = await navigateViaAPI(to: url)
 
+            // Strategy 2: GET queue → POST (INSERT_AFTER_CURRENT_VIDEO) → PATCH index
             if !navigated {
-                navigated = await navigateViaQueueClearAndSkip(url: url)
+                navigated = await navigateViaQueueInsert(url: url)
             }
 
             if navigated {
-                // Give YTMD time to load the track
-                try? await Task.sleep(for: .milliseconds(800))
+                // Give YTMD time to load / buffer the track
+                try? await Task.sleep(for: .milliseconds(900))
                 guard !Task.isCancelled else { return }
 
                 let titleAfter = await currentSongTitle()
@@ -122,16 +124,16 @@ final class PomodoroMusicCoordinator {
                         print("[PomodoroMusicCoordinator] ✓ Track changed: '\(before)' → '\(after)'")
                     } else {
                         print("[PomodoroMusicCoordinator] ✗ Track unchanged ('\(after)')")
-                        print("[PomodoroMusicCoordinator]   Use watch?v=VIDEO_ID (not a playlist URL) for reliable switching.")
+                        print("[PomodoroMusicCoordinator]   setQueueIndex may have succeeded but track is loading.")
                     }
                 }
             } else {
-                print("[PomodoroMusicCoordinator] All navigation strategies failed — playing current content")
+                print("[PomodoroMusicCoordinator] All navigation strategies exhausted — continuing current content")
             }
             guard !Task.isCancelled else { return }
         }
 
-        // Start playback for this phase
+        // Ensure playback is running
         await sendCommand("/play")
 
         // Sync shuffle state
@@ -143,131 +145,135 @@ final class PomodoroMusicCoordinator {
         }
     }
 
-    // MARK: - Navigation Strategies
+    // MARK: - Strategy 1: API Navigate
 
-    /// Strategy 1: POST /api/v1/navigate (requires Navigate plugin in YTMD)
     private func navigateViaAPI(to url: URL) async -> Bool {
         guard let token = await getToken() else { return false }
         guard let endpoint = URL(string: "\(baseURL)/api/v1/navigate") else { return false }
 
-        var request = URLRequest(url: endpoint)
-        request.httpMethod = "POST"
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try? JSONEncoder().encode(["url": url.absoluteString])
+        var req = URLRequest(url: endpoint)
+        req.httpMethod = "POST"
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try? JSONEncoder().encode(["url": url.absoluteString])
 
-        guard let (_, response) = try? await session.data(for: request),
-              let http = response as? HTTPURLResponse
-        else { return false }
-
+        guard let (_, resp) = try? await session.data(for: req),
+              let http = resp as? HTTPURLResponse else { return false }
         if http.statusCode == 401 { cachedToken = nil }
         guard (200..<300).contains(http.statusCode) else { return false }
 
-        print("[PomodoroMusicCoordinator] Strategy 1 (navigate API): success")
+        print("[PomodoroMusicCoordinator] Strategy 1 (navigate): success")
         return true
     }
 
-    /// Strategy 2 + 3: DELETE queue (to clear it), POST our track, POST /next.
-    ///
-    /// With an empty queue our track lands at position 1.
-    /// A single /next call then skips the current track and plays ours.
-    private func navigateViaQueueClearAndSkip(url: URL) async -> Bool {
+    // MARK: - Strategy 2: Queue GET → POST INSERT_AFTER_CURRENT → PATCH index
+
+    private func navigateViaQueueInsert(url: URL) async -> Bool {
         guard let payload = queuePayload(for: url) else {
-            print("[PomodoroMusicCoordinator] Queue strategy: unrecognised URL shape — skipping")
+            print("[PomodoroMusicCoordinator] Queue strategy: unrecognised URL — skipping")
             return false
         }
         guard let token = await getToken() else { return false }
 
-        // Debug: log queue state once per app session
-        if !hasLoggedQueueOnce {
-            hasLoggedQueueOnce = true
-            await logQueueState(token: token)
-        }
+        // Step A: find the currently selected queue index
+        let currentIndex = await selectedQueueIndex(token: token)
+        let targetIndex  = (currentIndex ?? 0) + 1
+        print("[PomodoroMusicCoordinator] Current queue index: \(currentIndex.map(String.init) ?? "unknown") → inserting at \(targetIndex)")
 
-        // Step A: try to clear the queue so our track will be first
-        let cleared = await deleteQueue(token: token)
-        if cleared {
-            // Brief pause so YTMD processes the clear before we add
-            try? await Task.sleep(for: .milliseconds(200))
-        }
-
-        // Step B: add our track
-        guard let endpoint = URL(string: "\(baseURL)/api/v1/queue") else { return false }
-        var postReq = URLRequest(url: endpoint)
+        // Step B: POST our track with INSERT_AFTER_CURRENT_VIDEO
+        guard let queueURL = URL(string: "\(baseURL)/api/v1/queue") else { return false }
+        var postReq = URLRequest(url: queueURL)
         postReq.httpMethod = "POST"
         postReq.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         postReq.setValue("application/json", forHTTPHeaderField: "Content-Type")
         postReq.httpBody = try? JSONSerialization.data(withJSONObject: payload)
 
-        guard let (data, postResp) = try? await session.data(for: postReq),
+        guard let (postData, postResp) = try? await session.data(for: postReq),
               let postHTTP = postResp as? HTTPURLResponse
         else {
             print("[PomodoroMusicCoordinator] Queue POST: no response")
             return false
         }
 
-        let body = String(data: data, encoding: .utf8) ?? ""
+        let postBody = String(data: postData, encoding: .utf8) ?? ""
         print("[PomodoroMusicCoordinator] Queue POST payload: \(payload)")
-        print("[PomodoroMusicCoordinator] Queue POST → HTTP \(postHTTP.statusCode)\(body.isEmpty ? "" : " body: \(body)")")
+        print("[PomodoroMusicCoordinator] Queue POST → HTTP \(postHTTP.statusCode)\(postBody.isEmpty ? "" : " \(postBody)")")
 
         if postHTTP.statusCode == 401 { cachedToken = nil }
         guard (200..<300).contains(postHTTP.statusCode) else { return false }
 
-        if !cleared {
-            print("[PomodoroMusicCoordinator] Queue not cleared — track added wherever YTMD put it")
-        }
-
-        // Step C: skip to our track
+        // Step C: jump directly to our track via setQueueIndex
         try? await Task.sleep(for: .milliseconds(300))
-        let skipped = await sendCommand("/next")
-        print("[PomodoroMusicCoordinator] Queue strategy /next: \(skipped ? "dispatched" : "failed")")
+        let jumped = await setQueueIndex(targetIndex, token: token)
+        print("[PomodoroMusicCoordinator] PATCH /queue { index: \(targetIndex) } → \(jumped ? "success" : "failed")")
 
-        return skipped
+        return jumped
     }
 
-    /// Attempt to DELETE /api/v1/queue (clears user-queued tracks).
-    /// Returns true if the server accepted the request.
-    private func deleteQueue(token: String) async -> Bool {
+    // MARK: - Queue Helpers
+
+    /// Returns the 0-based index of the item with `selected == true` in the queue.
+    private func selectedQueueIndex(token: String) async -> Int? {
+        guard let url = URL(string: "\(baseURL)/api/v1/queue") else { return nil }
+        var req = URLRequest(url: url)
+        req.httpMethod = "GET"
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+        guard let (data, _) = try? await session.data(for: req),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let items = json["items"] as? [[String: Any]]
+        else { return nil }
+
+        return items.firstIndex { item in
+            // Handle both playlistPanelVideoRenderer and the wrapper variant
+            if let r = item["playlistPanelVideoRenderer"] as? [String: Any] {
+                return r["selected"] as? Bool == true
+            }
+            if let wrapper = item["playlistPanelVideoWrapperRenderer"] as? [String: Any],
+               let primary = wrapper["primaryRenderer"] as? [String: Any],
+               let r = primary["playlistPanelVideoRenderer"] as? [String: Any] {
+                return r["selected"] as? Bool == true
+            }
+            return false
+        }
+    }
+
+    /// PATCH /api/v1/queue { "index": N } — tells YTMD to jump to and play that queue position.
+    private func setQueueIndex(_ index: Int, token: String) async -> Bool {
         guard let url = URL(string: "\(baseURL)/api/v1/queue") else { return false }
+        var req = URLRequest(url: url)
+        req.httpMethod = "PATCH"
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try? JSONSerialization.data(withJSONObject: ["index": index])
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "DELETE"
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        guard let (_, resp) = try? await session.data(for: req),
+              let http = resp as? HTTPURLResponse
+        else { return false }
 
-        guard let (_, response) = try? await session.data(for: request),
-              let http = response as? HTTPURLResponse
-        else {
-            print("[PomodoroMusicCoordinator] DELETE /queue: no response")
-            return false
-        }
-
-        if (200..<300).contains(http.statusCode) {
-            print("[PomodoroMusicCoordinator] DELETE /queue: cleared (HTTP \(http.statusCode))")
-            return true
-        } else {
-            print("[PomodoroMusicCoordinator] DELETE /queue: HTTP \(http.statusCode) — not supported by this YTMD version")
-            return false
-        }
+        if http.statusCode == 401 { cachedToken = nil }
+        return (200..<300).contains(http.statusCode)
     }
 
     // MARK: - URL Helpers
 
-    /// Remove the `si` share-tracking query parameter that YouTube Music share links append.
+    /// Strip the `si` share-tracking parameter YouTube Music appends to share links.
     private func stripShareParam(_ url: URL) -> URL {
-        guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return url }
-        components.queryItems = components.queryItems?.filter { $0.name != "si" }
-        return components.url ?? url
+        guard var c = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return url }
+        c.queryItems = c.queryItems?.filter { $0.name != "si" }
+        return c.url ?? url
     }
 
-    /// Build the POST /api/v1/queue payload from a YouTube Music URL.
+    /// Build the POST /api/v1/queue payload.
     ///
-    /// Supported shapes:
-    ///   watch?v=VIDEO_ID           → { videoId }
-    ///   watch?v=VIDEO_ID&list=PL   → { videoId, playlistId }
+    /// Always includes `insertPosition: INSERT_AFTER_CURRENT_VIDEO` so the track
+    /// lands immediately after the current one (at currentIndex + 1).
     ///
-    /// Playlist-only URLs (playlist?list=PL) are intentionally rejected here —
-    /// they don't carry a video ID that YTMD can queue, so they would never play.
-    /// The settings UI guides the user to supply a watch?v= link instead.
+    /// Supported URL shapes:
+    ///   watch?v=V         → { videoId: V, insertPosition }
+    ///   watch?v=V&list=L  → { videoId: V, insertPosition, playlistId: L }
+    ///
+    /// playlist?list=L is rejected — it has no video ID for the queue API.
     private func queuePayload(for url: URL) -> [String: Any]? {
         guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
               let host = url.host, host.contains("music.youtube.com")
@@ -275,23 +281,22 @@ final class PomodoroMusicCoordinator {
 
         let items = components.queryItems ?? []
 
-        // watch?v=VIDEO_ID[&list=PLAYLIST_ID]
         if url.path.contains("/watch"),
            let videoId = items.first(where: { $0.name == "v" })?.value {
-            var payload: [String: Any] = ["videoId": videoId]
+            var payload: [String: Any] = [
+                "videoId": videoId,
+                "insertPosition": "INSERT_AFTER_CURRENT_VIDEO"
+            ]
             if let listId = items.first(where: { $0.name == "list" })?.value {
                 payload["playlistId"] = listId
             }
             return payload
         }
 
-        // Playlist-only URL — not actionable
         if url.path.contains("/playlist") {
-            print("[PomodoroMusicCoordinator] Playlist-only URL supplied for queue navigation.")
-            print("[PomodoroMusicCoordinator] YTMD queue requires a video ID. Set a watch?v= link instead:")
-            if let listId = items.first(where: { $0.name == "list" })?.value {
-                print("[PomodoroMusicCoordinator]   watch?v=ANY_TRACK_FROM_THAT_PLAYLIST&list=\(listId)")
-            }
+            let listId = items.first(where: { $0.name == "list" })?.value ?? ""
+            print("[PomodoroMusicCoordinator] Playlist-only URL — no video ID for queue API.")
+            print("[PomodoroMusicCoordinator]   Use: watch?v=ANY_TRACK&list=\(listId)")
             return nil
         }
 
@@ -316,56 +321,38 @@ final class PomodoroMusicCoordinator {
         return json["title"] as? String
     }
 
-    private func logQueueState(token: String) async {
-        guard let url = URL(string: "\(baseURL)/api/v1/queue") else { return }
-        var req = URLRequest(url: url)
-        req.httpMethod = "GET"
-        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-
-        guard let (data, resp) = try? await session.data(for: req),
-              let http = resp as? HTTPURLResponse
-        else { return }
-
-        let raw = String(data: data, encoding: .utf8) ?? "(empty)"
-        let preview = raw.count > 300 ? String(raw.prefix(300)) + "…" : raw
-        print("[PomodoroMusicCoordinator] GET /api/v1/queue → HTTP \(http.statusCode): \(preview)")
-    }
-
     // MARK: - YTMD HTTP Commands
 
     private func getToken() async -> String? {
-        if let token = cachedToken { return token }
-
+        if let t = cachedToken { return t }
         guard let url = URL(string: "\(baseURL)/auth/boringNotch") else { return nil }
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-
-        guard let (data, _) = try? await session.data(for: request),
-              let response = try? JSONDecoder().decode(AuthResponse.self, from: data)
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        guard let (data, _) = try? await session.data(for: req),
+              let resp = try? JSONDecoder().decode(AuthResponse.self, from: data)
         else {
             print("[PomodoroMusicCoordinator] Auth failed")
             return nil
         }
-
-        cachedToken = response.accessToken
-        return response.accessToken
+        cachedToken = resp.accessToken
+        return resp.accessToken
     }
 
     @discardableResult
     private func sendCommand(_ endpoint: String, method: String = "POST") async -> Bool {
-        guard let token = await getToken() else { return false }
-        guard let url = URL(string: "\(baseURL)/api/v1\(endpoint)") else { return false }
+        guard let token = await getToken(),
+              let url = URL(string: "\(baseURL)/api/v1\(endpoint)")
+        else { return false }
 
-        var request = URLRequest(url: url)
-        request.httpMethod = method
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        var req = URLRequest(url: url)
+        req.httpMethod = method
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
 
-        guard let (_, response) = try? await session.data(for: request),
-              let http = response as? HTTPURLResponse
+        guard let (_, resp) = try? await session.data(for: req),
+              let http = resp as? HTTPURLResponse
         else { return false }
 
         if http.statusCode == 401 { cachedToken = nil }
-
         guard (200..<300).contains(http.statusCode) else {
             print("[PomodoroMusicCoordinator] \(endpoint): HTTP \(http.statusCode)")
             return false
@@ -378,12 +365,12 @@ final class PomodoroMusicCoordinator {
               let url = URL(string: "\(baseURL)/api/v1/shuffle")
         else { return nil }
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        var req = URLRequest(url: url)
+        req.httpMethod = "GET"
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
 
-        guard let (data, response) = try? await session.data(for: request),
-              let http = response as? HTTPURLResponse,
+        guard let (data, resp) = try? await session.data(for: req),
+              let http = resp as? HTTPURLResponse,
               (200..<300).contains(http.statusCode),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let state = json["state"] as? Bool
