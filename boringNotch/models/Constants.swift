@@ -220,4 +220,7 @@ extension Defaults.Keys {
     static let pomodoroYTMWorkShuffle = Key<Bool>("pomodoroYTMWorkShuffle", default: false)
     static let pomodoroYTMBreakShuffle = Key<Bool>("pomodoroYTMBreakShuffle", default: false)
     static let pomodoroYTMLongBreakShuffle = Key<Bool>("pomodoroYTMLongBreakShuffle", default: false)
+    static let pomodoroYTMWorkResume = Key<Bool>("pomodoroYTMWorkResume", default: false)
+    static let pomodoroYTMBreakResume = Key<Bool>("pomodoroYTMBreakResume", default: false)
+    static let pomodoroYTMLongBreakResume = Key<Bool>("pomodoroYTMLongBreakResume", default: false)
 }

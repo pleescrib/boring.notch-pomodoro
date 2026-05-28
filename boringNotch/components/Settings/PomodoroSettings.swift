@@ -23,6 +23,9 @@ struct PomodoroSettings: View {
     @Default(.pomodoroYTMWorkShuffle) var ytmWorkShuffle
     @Default(.pomodoroYTMBreakShuffle) var ytmBreakShuffle
     @Default(.pomodoroYTMLongBreakShuffle) var ytmLongBreakShuffle
+    @Default(.pomodoroYTMWorkResume) var ytmWorkResume
+    @Default(.pomodoroYTMBreakResume) var ytmBreakResume
+    @Default(.pomodoroYTMLongBreakResume) var ytmLongBreakResume
 
     @ObservedObject var pomodoroManager = PomodoroManager.shared
 
@@ -160,17 +163,20 @@ struct PomodoroSettings: View {
                 urlRow(
                     label: "Work track or playlist URL",
                     text: $ytmWorkURL,
-                    shuffle: $ytmWorkShuffle
+                    shuffle: $ytmWorkShuffle,
+                    resume: $ytmWorkResume
                 )
                 urlRow(
                     label: "Short break URL",
                     text: $ytmBreakURL,
-                    shuffle: $ytmBreakShuffle
+                    shuffle: $ytmBreakShuffle,
+                    resume: $ytmBreakResume
                 )
                 urlRow(
                     label: "Long break URL",
                     text: $ytmLongBreakURL,
-                    shuffle: $ytmLongBreakShuffle
+                    shuffle: $ytmLongBreakShuffle,
+                    resume: $ytmLongBreakResume
                 )
             }
         } header: {
@@ -179,7 +185,8 @@ struct PomodoroSettings: View {
             if ytmEnabled {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Requires YouTube Music Desktop App with the API Server plugin.")
-                    Text("Paste a share URL from YouTube Music (watch?v=…). To play a specific playlist, share any song from inside it — the URL will look like watch?v=VIDEO&list=PLAYLIST_ID.")
+                    Text("Paste a share URL from YouTube Music (watch?v=…). To play a playlist with shuffle, share any song from inside it — the URL will look like watch?v=VIDEO&list=PLAYLIST_ID.")
+                    Text("Shuffle on + playlist URL: a different random track plays each cycle. Shuffle off: the specific video plays each time.")
                     Text("Playlist-only links (playlist?list=…) are not supported — they have no video ID for the API to queue.")
                         .foregroundStyle(.orange)
                 }
@@ -190,7 +197,12 @@ struct PomodoroSettings: View {
     }
 
     @ViewBuilder
-    private func urlRow(label: String, text: Binding<String>, shuffle: Binding<Bool>) -> some View {
+    private func urlRow(
+        label: String,
+        text: Binding<String>,
+        shuffle: Binding<Bool>,
+        resume: Binding<Bool>
+    ) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(label)
                 .font(.subheadline)
@@ -204,6 +216,9 @@ struct PomodoroSettings: View {
                     .foregroundStyle(.orange)
             }
             Toggle("Shuffle", isOn: shuffle)
+                .tint(.effectiveAccent)
+                .font(.subheadline)
+            Toggle("Resume where I left off", isOn: resume)
                 .tint(.effectiveAccent)
                 .font(.subheadline)
         }

@@ -147,6 +147,7 @@ final class PomodoroManager: ObservableObject {
         cycleCount = 0
         sessionElapsedSeconds = 0
         persistState()
+        musicCoordinator.timerReset()
     }
 
     func resetCycleCount() {

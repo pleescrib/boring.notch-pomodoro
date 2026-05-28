@@ -9,32 +9,49 @@ import Foundation
 
 /// Coordinates YouTube Music playback with Pomodoro timer phases.
 ///
-/// Navigation strategy (tried in order, stops at first success):
+/// ## Navigation
+/// Tried in order, stops at first success:
+///   1. POST /api/v1/navigate  (requires Navigate plugin in YTMD)
+///   2. GET /api/v1/queue → find selected index → POST with INSERT_AFTER_CURRENT_VIDEO → PATCH index
+///   3. Silent continue (play whatever is already loaded)
 ///
-///   1. POST /api/v1/navigate  — available only when the Navigate plugin is enabled
-///      in YTMD and the API Server exposes it.
+/// ## Shuffle + playlist
+/// When shuffle is on and the URL contains a `list=` param, navigation lands on the specific
+/// video first (to establish playlist context), then calls /next once to jump to a random
+/// shuffled track from that playlist.
 ///
-///   2. GET /api/v1/queue  →  POST /api/v1/queue  →  PATCH /api/v1/queue
-///      • GET: find which queue item has `selected = true` → currentIndex
-///      • POST body: { videoId, insertPosition: "INSERT_AFTER_CURRENT_VIDEO" [, playlistId] }
-///        → our track lands at currentIndex + 1
-///      • PATCH body: { index: currentIndex + 1 }
-///        → YTMD jumps directly to that track and starts playing it
+/// ## Resume where I left off
+/// Each phase has a per-toggle save/restore. When leaving a phase whose resume toggle is on,
+/// the current `videoId` + `elapsedSeconds` is captured via GET /api/v1/song. When that phase
+/// starts again, the coordinator navigates to the saved video and seeks to the saved position.
+/// Saved state is cleared when `timerReset()` is called.
 ///
-///   3. Silent continue — play/shuffle from whatever is already loaded.
-///
-/// URL → API payload:
+/// ## URL → queue payload
 ///   watch?v=V          → { videoId: V, insertPosition: INSERT_AFTER_CURRENT_VIDEO }
-///   watch?v=V&list=L   → { videoId: V, insertPosition: ..., playlistId: L }
-///   playlist?list=L    → rejected (no video ID); the Settings UI warns the user.
+///   watch?v=V&list=L   → { videoId: V, insertPosition, playlistId: L }
+///   playlist?list=L    → rejected (no video ID); the Settings UI warns the user
 ///
 /// The `si` share-tracking parameter is stripped before parsing.
 final class PomodoroMusicCoordinator {
 
-    // MARK: - YTMD config
+    // MARK: - Saved position snapshot
+
+    private struct PhaseSnapshot {
+        let videoId: String
+        let elapsedSeconds: Double
+        let title: String
+    }
+
+    // MARK: - State
+
     private let baseURL  = YouTubeMusicConfiguration.default.baseURL
     private let bundleID = YouTubeMusicConfiguration.default.bundleIdentifier
     private var cachedToken: String?
+
+    private var currentPhase: PomodoroPhase?
+    private var savedWork:      PhaseSnapshot?
+    private var savedBreak:     PhaseSnapshot?
+    private var savedLongBreak: PhaseSnapshot?
 
     private let session: URLSession = {
         let cfg = URLSessionConfiguration.default
@@ -51,24 +68,39 @@ final class PomodoroMusicCoordinator {
     func phaseStarted(_ phase: PomodoroPhase) {
         guard Defaults[.pomodoroYTMEnabled] else { return }
 
+        let leavingPhase = currentPhase
+        currentPhase = phase
+
         let urlString: String
         let shuffle: Bool
+        let resumeEnabled: Bool
 
         switch phase {
         case .work:
-            urlString = Defaults[.pomodoroYTMWorkURL]
-            shuffle   = Defaults[.pomodoroYTMWorkShuffle]
+            urlString     = Defaults[.pomodoroYTMWorkURL]
+            shuffle       = Defaults[.pomodoroYTMWorkShuffle]
+            resumeEnabled = Defaults[.pomodoroYTMWorkResume]
         case .shortBreak:
-            urlString = Defaults[.pomodoroYTMBreakURL]
-            shuffle   = Defaults[.pomodoroYTMBreakShuffle]
+            urlString     = Defaults[.pomodoroYTMBreakURL]
+            shuffle       = Defaults[.pomodoroYTMBreakShuffle]
+            resumeEnabled = Defaults[.pomodoroYTMBreakResume]
         case .longBreak:
-            urlString = Defaults[.pomodoroYTMLongBreakURL]
-            shuffle   = Defaults[.pomodoroYTMLongBreakShuffle]
+            urlString     = Defaults[.pomodoroYTMLongBreakURL]
+            shuffle       = Defaults[.pomodoroYTMLongBreakShuffle]
+            resumeEnabled = Defaults[.pomodoroYTMLongBreakResume]
         }
+
+        let savedSnapshot: PhaseSnapshot? = resumeEnabled ? snapshot(for: phase) : nil
 
         pendingTask?.cancel()
         pendingTask = Task {
-            await executePhaseTransition(urlString: urlString, shuffle: shuffle)
+            await executePhaseTransition(
+                phase: phase,
+                leavingPhase: leavingPhase,
+                urlString: urlString,
+                shuffle: shuffle,
+                savedSnapshot: savedSnapshot
+            )
         }
     }
 
@@ -83,55 +115,107 @@ final class PomodoroMusicCoordinator {
         Task { await sendCommand("/play") }
     }
 
+    func timerReset() {
+        savedWork      = nil
+        savedBreak     = nil
+        savedLongBreak = nil
+        currentPhase   = nil
+    }
+
+    // MARK: - Snapshot Helpers
+
+    private func snapshot(for phase: PomodoroPhase) -> PhaseSnapshot? {
+        switch phase {
+        case .work:       return savedWork
+        case .shortBreak: return savedBreak
+        case .longBreak:  return savedLongBreak
+        }
+    }
+
+    private func storeSnapshot(_ snap: PhaseSnapshot, for phase: PomodoroPhase) {
+        switch phase {
+        case .work:       savedWork      = snap
+        case .shortBreak: savedBreak     = snap
+        case .longBreak:  savedLongBreak = snap
+        }
+    }
+
+    private func resumeToggleEnabled(for phase: PomodoroPhase) -> Bool {
+        switch phase {
+        case .work:       return Defaults[.pomodoroYTMWorkResume]
+        case .shortBreak: return Defaults[.pomodoroYTMBreakResume]
+        case .longBreak:  return Defaults[.pomodoroYTMLongBreakResume]
+        }
+    }
+
     // MARK: - Phase Transition
 
-    private func executePhaseTransition(urlString: String, shuffle: Bool) async {
+    private func executePhaseTransition(
+        phase: PomodoroPhase,
+        leavingPhase: PomodoroPhase?,
+        urlString: String,
+        shuffle: Bool,
+        savedSnapshot: PhaseSnapshot?
+    ) async {
         guard !Task.isCancelled else { return }
-
         guard isYTMDRunning() else {
             print("[PomodoroMusicCoordinator] YTMD not running — skipping")
             return
         }
 
+        // Save position for the phase we're leaving, if its resume toggle is on
+        if let leaving = leavingPhase, resumeToggleEnabled(for: leaving) {
+            if let snap = await captureCurrentSong() {
+                storeSnapshot(snap, for: leaving)
+                print("[PomodoroMusicCoordinator] Saved \(leaving) position: \(Int(snap.elapsedSeconds))s into '\(snap.title)'")
+            }
+        }
+
         let titleBefore = await currentSongTitle()
 
-        // Pause current playback while we switch
+        // Pause while we switch
         await sendCommand("/pause")
         try? await Task.sleep(for: .milliseconds(300))
         guard !Task.isCancelled else { return }
 
         var navigated = false
+        var didResume = false
 
-        if !urlString.isEmpty, let raw = URL(string: urlString) {
+        // ── Resume path ────────────────────────────────────────────────────────
+        if let snap = savedSnapshot {
+            print("[PomodoroMusicCoordinator] Resuming \(phase): '\(snap.title)' at \(Int(snap.elapsedSeconds))s")
+            navigated = await navigateViaQueueInsertVideoId(snap.videoId, playlistId: nil)
+            if navigated {
+                // Give YTMD time to buffer the track before seeking
+                try? await Task.sleep(for: .milliseconds(1400))
+                guard !Task.isCancelled else { return }
+                let sought = await seekTo(seconds: snap.elapsedSeconds)
+                print("[PomodoroMusicCoordinator] Seek \(Int(snap.elapsedSeconds))s → \(sought ? "✓" : "✗")")
+                didResume = true
+            }
+        }
+
+        // ── Normal navigation path ──────────────────────────────────────────────
+        if !navigated, !urlString.isEmpty, let raw = URL(string: urlString) {
             let url = stripShareParam(raw)
-
-            // Strategy 1: API navigate endpoint (requires Navigate plugin)
             navigated = await navigateViaAPI(to: url)
-
-            // Strategy 2: GET queue → POST (INSERT_AFTER_CURRENT_VIDEO) → PATCH index
             if !navigated {
                 navigated = await navigateViaQueueInsert(url: url)
             }
-
-            if navigated {
-                // Give YTMD time to load / buffer the track
-                try? await Task.sleep(for: .milliseconds(900))
-                guard !Task.isCancelled else { return }
-
-                let titleAfter = await currentSongTitle()
-                if let before = titleBefore, let after = titleAfter {
-                    if before != after {
-                        print("[PomodoroMusicCoordinator] ✓ Track changed: '\(before)' → '\(after)'")
-                    } else {
-                        print("[PomodoroMusicCoordinator] ✗ Track unchanged ('\(after)')")
-                        print("[PomodoroMusicCoordinator]   setQueueIndex may have succeeded but track is loading.")
-                    }
-                }
-            } else {
-                print("[PomodoroMusicCoordinator] All navigation strategies exhausted — continuing current content")
-            }
-            guard !Task.isCancelled else { return }
         }
+
+        // Diagnostics (skip when resuming — title won't change, that's expected)
+        if navigated && !didResume {
+            try? await Task.sleep(for: .milliseconds(900))
+            guard !Task.isCancelled else { return }
+            let titleAfter = await currentSongTitle()
+            if let before = titleBefore, let after = titleAfter {
+                let changed = before != after
+                print("[PomodoroMusicCoordinator] \(changed ? "✓" : "✗") Track: '\(before)' → '\(after)'")
+            }
+        }
+
+        guard !Task.isCancelled else { return }
 
         // Ensure playback is running
         await sendCommand("/play")
@@ -140,8 +224,21 @@ final class PomodoroMusicCoordinator {
         try? await Task.sleep(for: .milliseconds(400))
         guard !Task.isCancelled else { return }
 
-        if let current = await getShuffleState(), current != shuffle {
+        if let currentShuffle = await getShuffleState(), currentShuffle != shuffle {
             await sendCommand("/shuffle")
+        }
+
+        // Shuffle + playlist: skip once to land on a random track from the playlist.
+        // Only do this on normal navigation (not resume — resume targets a specific position).
+        if navigated && !didResume && shuffle,
+           !urlString.isEmpty,
+           let raw = URL(string: urlString),
+           hasPlaylistContext(stripShareParam(raw)) {
+            try? await Task.sleep(for: .milliseconds(500))
+            guard !Task.isCancelled else { return }
+            await sendCommand("/next")
+            let randomTitle = await currentSongTitle() ?? "?"
+            print("[PomodoroMusicCoordinator] Shuffle-skip → '\(randomTitle)'")
         }
     }
 
@@ -162,7 +259,7 @@ final class PomodoroMusicCoordinator {
         if http.statusCode == 401 { cachedToken = nil }
         guard (200..<300).contains(http.statusCode) else { return false }
 
-        print("[PomodoroMusicCoordinator] Strategy 1 (navigate): success")
+        print("[PomodoroMusicCoordinator] Strategy 1 (navigate): ✓")
         return true
     }
 
@@ -173,14 +270,28 @@ final class PomodoroMusicCoordinator {
             print("[PomodoroMusicCoordinator] Queue strategy: unrecognised URL — skipping")
             return false
         }
+        return await insertAndJump(payload: payload)
+    }
+
+    /// Used by the resume path — build a payload from a raw videoId (no playlist context needed).
+    private func navigateViaQueueInsertVideoId(_ videoId: String, playlistId: String?) async -> Bool {
+        var payload: [String: Any] = [
+            "videoId": videoId,
+            "insertPosition": "INSERT_AFTER_CURRENT_VIDEO"
+        ]
+        if let listId = playlistId { payload["playlistId"] = listId }
+        return await insertAndJump(payload: payload)
+    }
+
+    private func insertAndJump(payload: [String: Any]) async -> Bool {
         guard let token = await getToken() else { return false }
 
-        // Step A: find the currently selected queue index
+        // Step A: current queue position
         let currentIndex = await selectedQueueIndex(token: token)
         let targetIndex  = (currentIndex ?? 0) + 1
-        print("[PomodoroMusicCoordinator] Current queue index: \(currentIndex.map(String.init) ?? "unknown") → inserting at \(targetIndex)")
+        print("[PomodoroMusicCoordinator] Queue idx: \(currentIndex.map(String.init) ?? "?") → inserting at \(targetIndex)")
 
-        // Step B: POST our track with INSERT_AFTER_CURRENT_VIDEO
+        // Step B: POST track with INSERT_AFTER_CURRENT_VIDEO
         guard let queueURL = URL(string: "\(baseURL)/api/v1/queue") else { return false }
         var postReq = URLRequest(url: queueURL)
         postReq.httpMethod = "POST"
@@ -196,16 +307,15 @@ final class PomodoroMusicCoordinator {
         }
 
         let postBody = String(data: postData, encoding: .utf8) ?? ""
-        print("[PomodoroMusicCoordinator] Queue POST payload: \(payload)")
-        print("[PomodoroMusicCoordinator] Queue POST → HTTP \(postHTTP.statusCode)\(postBody.isEmpty ? "" : " \(postBody)")")
+        print("[PomodoroMusicCoordinator] Queue POST \(payload) → HTTP \(postHTTP.statusCode)\(postBody.isEmpty ? "" : " \(postBody)")")
 
         if postHTTP.statusCode == 401 { cachedToken = nil }
         guard (200..<300).contains(postHTTP.statusCode) else { return false }
 
-        // Step C: jump directly to our track via setQueueIndex
+        // Step C: jump directly to the inserted track
         try? await Task.sleep(for: .milliseconds(300))
         let jumped = await setQueueIndex(targetIndex, token: token)
-        print("[PomodoroMusicCoordinator] PATCH /queue { index: \(targetIndex) } → \(jumped ? "success" : "failed")")
+        print("[PomodoroMusicCoordinator] PATCH /queue { index: \(targetIndex) } → \(jumped ? "✓" : "✗")")
 
         return jumped
     }
@@ -225,7 +335,6 @@ final class PomodoroMusicCoordinator {
         else { return nil }
 
         return items.firstIndex { item in
-            // Handle both playlistPanelVideoRenderer and the wrapper variant
             if let r = item["playlistPanelVideoRenderer"] as? [String: Any] {
                 return r["selected"] as? Bool == true
             }
@@ -238,7 +347,7 @@ final class PomodoroMusicCoordinator {
         }
     }
 
-    /// PATCH /api/v1/queue { "index": N } — tells YTMD to jump to and play that queue position.
+    /// PATCH /api/v1/queue { "index": N } — jumps YTMD to that queue position immediately.
     private func setQueueIndex(_ index: Int, token: String) async -> Bool {
         guard let url = URL(string: "\(baseURL)/api/v1/queue") else { return false }
         var req = URLRequest(url: url)
@@ -250,7 +359,52 @@ final class PomodoroMusicCoordinator {
         guard let (_, resp) = try? await session.data(for: req),
               let http = resp as? HTTPURLResponse
         else { return false }
+        if http.statusCode == 401 { cachedToken = nil }
+        return (200..<300).contains(http.statusCode)
+    }
 
+    // MARK: - Song State Capture / Seek
+
+    /// Captures the current song's videoId + elapsed position for resume.
+    private func captureCurrentSong() async -> PhaseSnapshot? {
+        guard let token = await getToken(),
+              let url = URL(string: "\(baseURL)/api/v1/song")
+        else { return nil }
+
+        var req = URLRequest(url: url)
+        req.httpMethod = "GET"
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+        guard let (data, _) = try? await session.data(for: req),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let videoId = json["videoId"] as? String
+        else { return nil }
+
+        let elapsed: Double
+        if let e = json["elapsedSeconds"] as? Double { elapsed = e }
+        else if let e = json["elapsedSeconds"] as? Int { elapsed = Double(e) }
+        else { elapsed = 0 }
+
+        let title = json["title"] as? String ?? videoId
+        return PhaseSnapshot(videoId: videoId, elapsedSeconds: elapsed, title: title)
+    }
+
+    /// POST /api/v1/seek-to { "seconds": N }
+    @discardableResult
+    private func seekTo(seconds: Double) async -> Bool {
+        guard let token = await getToken(),
+              let url = URL(string: "\(baseURL)/api/v1/seek-to")
+        else { return false }
+
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try? JSONSerialization.data(withJSONObject: ["seconds": seconds])
+
+        guard let (_, resp) = try? await session.data(for: req),
+              let http = resp as? HTTPURLResponse
+        else { return false }
         if http.statusCode == 401 { cachedToken = nil }
         return (200..<300).contains(http.statusCode)
     }
@@ -264,16 +418,8 @@ final class PomodoroMusicCoordinator {
         return c.url ?? url
     }
 
-    /// Build the POST /api/v1/queue payload.
-    ///
-    /// Always includes `insertPosition: INSERT_AFTER_CURRENT_VIDEO` so the track
-    /// lands immediately after the current one (at currentIndex + 1).
-    ///
-    /// Supported URL shapes:
-    ///   watch?v=V         → { videoId: V, insertPosition }
-    ///   watch?v=V&list=L  → { videoId: V, insertPosition, playlistId: L }
-    ///
-    /// playlist?list=L is rejected — it has no video ID for the queue API.
+    /// Build the POST /api/v1/queue payload for a given URL.
+    /// Returns nil for playlist-only URLs (no video ID).
     private func queuePayload(for url: URL) -> [String: Any]? {
         guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
               let host = url.host, host.contains("music.youtube.com")
@@ -295,12 +441,21 @@ final class PomodoroMusicCoordinator {
 
         if url.path.contains("/playlist") {
             let listId = items.first(where: { $0.name == "list" })?.value ?? ""
-            print("[PomodoroMusicCoordinator] Playlist-only URL — no video ID for queue API.")
-            print("[PomodoroMusicCoordinator]   Use: watch?v=ANY_TRACK&list=\(listId)")
+            print("[PomodoroMusicCoordinator] Playlist-only URL not supported for queue API.")
+            print("[PomodoroMusicCoordinator]   Use watch?v=ANY_TRACK&list=\(listId)")
             return nil
         }
 
         return nil
+    }
+
+    /// Returns true if the URL contains both a video ID and a playlist — meaning YTMD
+    /// will load full playlist context, making shuffle-skip effective.
+    private func hasPlaylistContext(_ url: URL) -> Bool {
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return false }
+        let items = components.queryItems ?? []
+        return items.contains(where: { $0.name == "v" }) &&
+               items.contains(where: { $0.name == "list" })
     }
 
     // MARK: - Diagnostics
@@ -317,7 +472,6 @@ final class PomodoroMusicCoordinator {
         guard let (data, _) = try? await session.data(for: req),
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
         else { return nil }
-
         return json["title"] as? String
     }
 
@@ -351,7 +505,6 @@ final class PomodoroMusicCoordinator {
         guard let (_, resp) = try? await session.data(for: req),
               let http = resp as? HTTPURLResponse
         else { return false }
-
         if http.statusCode == 401 { cachedToken = nil }
         guard (200..<300).contains(http.statusCode) else {
             print("[PomodoroMusicCoordinator] \(endpoint): HTTP \(http.statusCode)")
@@ -375,7 +528,6 @@ final class PomodoroMusicCoordinator {
               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let state = json["state"] as? Bool
         else { return nil }
-
         return state
     }
 
