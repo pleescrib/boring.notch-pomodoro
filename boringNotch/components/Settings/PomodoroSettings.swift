@@ -184,10 +184,11 @@ struct PomodoroSettings: View {
         } footer: {
             if ytmEnabled {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Requires YouTube Music Desktop App with the API Server plugin.")
-                    Text("Paste a share URL from YouTube Music (watch?v=…). To play a playlist with shuffle, share any song from inside it — the URL will look like watch?v=VIDEO&list=PLAYLIST_ID.")
-                    Text("Shuffle on + playlist URL: a different random track plays each cycle. Shuffle off: the specific video plays each time.")
-                    Text("Playlist-only links (playlist?list=…) are not supported — they have no video ID for the API to queue.")
+                    Text("Requires YouTube Music Desktop App with the API Server plugin enabled.")
+                    Text("Paste any YouTube Music share URL (watch?v=…). For playlist shuffle, also enable the Navigate plugin in YTMD — without it only the specific video plays.")
+                    Text("Shuffle on + playlist: a random track from the playlist plays each cycle (Navigate plugin required). Shuffle off: the specific video plays every time.")
+                    Text("Resume where I left off: picks up the exact song and position when returning to that phase. Useful for long mixes during work sessions.")
+                    Text("Playlist-only links (playlist?list=…) require the Navigate plugin. For the queue-based fallback, share a song inside the playlist (watch?v=VIDEO&list=PLAYLIST_ID).")
                         .foregroundStyle(.orange)
                 }
                 .foregroundStyle(.secondary)

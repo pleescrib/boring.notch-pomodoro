@@ -9,29 +9,49 @@ import Foundation
 
 /// Coordinates YouTube Music playback with Pomodoro timer phases.
 ///
-/// ## Navigation
-/// Tried in order, stops at first success:
-///   1. POST /api/v1/navigate  (requires Navigate plugin in YTMD)
-///   2. GET /api/v1/queue → find selected index → POST with INSERT_AFTER_CURRENT_VIDEO → PATCH index
-///   3. Silent continue (play whatever is already loaded)
+/// ## Navigation strategies (tried in order)
 ///
-/// ## Shuffle + playlist
-/// When shuffle is on and the URL contains a `list=` param, navigation lands on the specific
-/// video first (to establish playlist context), then calls /next once to jump to a random
-/// shuffled track from that playlist.
+///   1. POST /api/v1/navigate  — requires the "Navigate" plugin in YTMD.
+///      Works with any URL including full playlist links. This is the only
+///      path that loads an entire playlist into YTMD's context.
+///
+///   2. GET /api/v1/queue  →  POST /api/v1/queue  →  PATCH /api/v1/queue
+///      Works for watch?v=V (single video or video-within-playlist).
+///      The `playlistId` field in POST /queue is accepted by the schema but
+///      is NOT forwarded to the renderer by YTMD's song-controls layer
+///      (confirmed from source), so playlist context cannot be loaded this way.
+///
+///   3. Silent continue (plays whatever is already loaded).
+///
+/// ## Queue clear
+///   DELETE /api/v1/queue (no index) is called at the start of every phase
+///   transition — after pausing, before inserting. This removes stale queue
+///   items that accumulated from previous cycles or the user's prior session.
+///   The currently playing track is unaffected (YouTube Music keeps it buffered).
+///
+/// ## Seek-to-zero
+///   YouTube Music caches playback position for partially-watched videos.
+///   When a phase's "Resume where I left off" toggle is OFF, the coordinator
+///   explicitly seeks to 0 after the track loads (~1.2 s), overriding the
+///   cached position.
 ///
 /// ## Resume where I left off
-/// Each phase has a per-toggle save/restore. When leaving a phase whose resume toggle is on,
-/// the current `videoId` + `elapsedSeconds` is captured via GET /api/v1/song. When that phase
-/// starts again, the coordinator navigates to the saved video and seeks to the saved position.
-/// Saved state is cleared when `timerReset()` is called.
+///   When a phase's toggle is ON, the current videoId + elapsedSeconds are
+///   captured from GET /api/v1/song before leaving that phase. On re-entry,
+///   the coordinator navigates to the saved videoId and seeks to the saved
+///   position. Saved state is cleared when timerReset() is called.
 ///
-/// ## URL → queue payload
-///   watch?v=V          → { videoId: V, insertPosition: INSERT_AFTER_CURRENT_VIDEO }
-///   watch?v=V&list=L   → { videoId: V, insertPosition, playlistId: L }
-///   playlist?list=L    → rejected (no video ID); the Settings UI warns the user
+/// ## Shuffle + playlist
+///   After navigation succeeds, if shuffle is on and the URL contains both
+///   v= and list= parameters (i.e., a video inside a playlist), the coordinator
+///   enables shuffle and calls /next once to land on a random track.
+///   This only works reliably when navigation used Strategy 1 (Navigate plugin),
+///   because only that strategy loads the full playlist queue into YTMD.
 ///
-/// The `si` share-tracking parameter is stripped before parsing.
+/// ## URL shapes
+///   watch?v=V          → queue payload { videoId: V }
+///   watch?v=V&list=L   → queue payload { videoId: V, playlistId: L } (playlistId is cosmetic only in queue path)
+///   playlist?list=L    → rejected for queue path; navigate path handles it if plugin is enabled
 final class PomodoroMusicCoordinator {
 
     // MARK: - Saved position snapshot
@@ -163,7 +183,7 @@ final class PomodoroMusicCoordinator {
             return
         }
 
-        // Save position for the phase we're leaving, if its resume toggle is on
+        // Save position for the phase we're leaving (if its resume toggle is on)
         if let leaving = leavingPhase, resumeToggleEnabled(for: leaving) {
             if let snap = await captureCurrentSong() {
                 storeSnapshot(snap, for: leaving)
@@ -171,22 +191,30 @@ final class PomodoroMusicCoordinator {
             }
         }
 
-        let titleBefore = await currentSongTitle()
-
         // Pause while we switch
         await sendCommand("/pause")
         try? await Task.sleep(for: .milliseconds(300))
         guard !Task.isCancelled else { return }
 
+        // Clear all queued items so stale tracks from prior cycles don't interfere.
+        // The currently buffered/playing track is unaffected by the clear.
+        let cleared = await clearQueue()
+        print("[PomodoroMusicCoordinator] Queue cleared → \(cleared ? "✓" : "✗")")
+        if cleared {
+            try? await Task.sleep(for: .milliseconds(300))
+            guard !Task.isCancelled else { return }
+        }
+
         var navigated = false
         var didResume = false
+        var didShuffleSkim = false
 
         // ── Resume path ────────────────────────────────────────────────────────
         if let snap = savedSnapshot {
             print("[PomodoroMusicCoordinator] Resuming \(phase): '\(snap.title)' at \(Int(snap.elapsedSeconds))s")
             navigated = await navigateViaQueueInsertVideoId(snap.videoId, playlistId: nil)
             if navigated {
-                // Give YTMD time to buffer the track before seeking
+                // Buffer time before seeking
                 try? await Task.sleep(for: .milliseconds(1400))
                 guard !Task.isCancelled else { return }
                 let sought = await seekTo(seconds: snap.elapsedSeconds)
@@ -198,26 +226,30 @@ final class PomodoroMusicCoordinator {
         // ── Normal navigation path ──────────────────────────────────────────────
         if !navigated, !urlString.isEmpty, let raw = URL(string: urlString) {
             let url = stripShareParam(raw)
+
+            // Strategy 1: Navigate plugin (handles playlists, any URL)
             navigated = await navigateViaAPI(to: url)
+
+            // Strategy 2: Queue insert (single video only; playlistId is cosmetic in this path)
             if !navigated {
                 navigated = await navigateViaQueueInsert(url: url)
             }
         }
 
-        // Diagnostics (skip when resuming — title won't change, that's expected)
-        if navigated && !didResume {
-            try? await Task.sleep(for: .milliseconds(900))
-            guard !Task.isCancelled else { return }
-            let titleAfter = await currentSongTitle()
-            if let before = titleBefore, let after = titleAfter {
-                let changed = before != after
-                print("[PomodoroMusicCoordinator] \(changed ? "✓" : "✗") Track: '\(before)' → '\(after)'")
-            }
-        }
-
         guard !Task.isCancelled else { return }
 
-        // Ensure playback is running
+        if navigated && !didResume {
+            // Give YTMD time to buffer the track before checking / seeking
+            try? await Task.sleep(for: .milliseconds(1000))
+            guard !Task.isCancelled else { return }
+
+            let titleAfter = await currentSongTitle()
+            print("[PomodoroMusicCoordinator] Now playing: '\(titleAfter ?? "?")'")
+        } else if !navigated {
+            print("[PomodoroMusicCoordinator] All navigation strategies exhausted — continuing current content")
+        }
+
+        // Start playback
         await sendCommand("/play")
 
         // Sync shuffle state
@@ -228,17 +260,30 @@ final class PomodoroMusicCoordinator {
             await sendCommand("/shuffle")
         }
 
-        // Shuffle + playlist: skip once to land on a random track from the playlist.
-        // Only do this on normal navigation (not resume — resume targets a specific position).
+        // Shuffle + playlist: skip to a random track.
+        // This only produces genuine randomisation when Strategy 1 (navigate) was used,
+        // because only the navigate endpoint loads the full playlist into YTMD.
         if navigated && !didResume && shuffle,
            !urlString.isEmpty,
            let raw = URL(string: urlString),
            hasPlaylistContext(stripShareParam(raw)) {
-            try? await Task.sleep(for: .milliseconds(500))
+            try? await Task.sleep(for: .milliseconds(600))
             guard !Task.isCancelled else { return }
             await sendCommand("/next")
-            let randomTitle = await currentSongTitle() ?? "?"
-            print("[PomodoroMusicCoordinator] Shuffle-skip → '\(randomTitle)'")
+            didShuffleSkim = true
+            print("[PomodoroMusicCoordinator] Shuffle-skip fired")
+
+            // Wait for the skipped-to track to load before seeking
+            try? await Task.sleep(for: .milliseconds(1200))
+            guard !Task.isCancelled else { return }
+        }
+
+        // Seek to 0 when resume is OFF (overrides YouTube's cached position for this video).
+        // Not needed after a resume (already seeked to saved position) or when there
+        // was no navigation (no track change happened).
+        if navigated && !didResume {
+            let sought = await seekTo(seconds: 0)
+            print("[PomodoroMusicCoordinator] Seek-to-zero (resume OFF)\(didShuffleSkim ? " after shuffle-skip" : "") → \(sought ? "✓" : "✗")")
         }
     }
 
@@ -263,22 +308,18 @@ final class PomodoroMusicCoordinator {
         return true
     }
 
-    // MARK: - Strategy 2: Queue GET → POST INSERT_AFTER_CURRENT → PATCH index
+    // MARK: - Strategy 2: Queue INSERT_AFTER_CURRENT → PATCH index
 
     private func navigateViaQueueInsert(url: URL) async -> Bool {
         guard let payload = queuePayload(for: url) else {
-            print("[PomodoroMusicCoordinator] Queue strategy: unrecognised URL — skipping")
+            print("[PomodoroMusicCoordinator] Queue strategy: unrecognised/playlist-only URL — skipping")
             return false
         }
         return await insertAndJump(payload: payload)
     }
 
-    /// Used by the resume path — build a payload from a raw videoId (no playlist context needed).
     private func navigateViaQueueInsertVideoId(_ videoId: String, playlistId: String?) async -> Bool {
-        var payload: [String: Any] = [
-            "videoId": videoId,
-            "insertPosition": "INSERT_AFTER_CURRENT_VIDEO"
-        ]
+        var payload: [String: Any] = ["videoId": videoId]
         if let listId = playlistId { payload["playlistId"] = listId }
         return await insertAndJump(payload: payload)
     }
@@ -286,18 +327,28 @@ final class PomodoroMusicCoordinator {
     private func insertAndJump(payload: [String: Any]) async -> Bool {
         guard let token = await getToken() else { return false }
 
-        // Step A: current queue position
+        // Find the currently selected queue index (post-clear, this is usually 0 or nil)
         let currentIndex = await selectedQueueIndex(token: token)
-        let targetIndex  = (currentIndex ?? 0) + 1
-        print("[PomodoroMusicCoordinator] Queue idx: \(currentIndex.map(String.init) ?? "?") → inserting at \(targetIndex)")
 
-        // Step B: POST track with INSERT_AFTER_CURRENT_VIDEO
+        // Choose insert position and target index based on whether there's a current item
+        var fullPayload = payload
+        let targetIndex: Int
+        if let cur = currentIndex {
+            fullPayload["insertPosition"] = "INSERT_AFTER_CURRENT_VIDEO"
+            targetIndex = cur + 1
+        } else {
+            fullPayload["insertPosition"] = "INSERT_AT_END"
+            targetIndex = 0
+        }
+
+        print("[PomodoroMusicCoordinator] Queue idx: \(currentIndex.map(String.init) ?? "empty") → inserting at \(targetIndex)")
+
         guard let queueURL = URL(string: "\(baseURL)/api/v1/queue") else { return false }
         var postReq = URLRequest(url: queueURL)
         postReq.httpMethod = "POST"
         postReq.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         postReq.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        postReq.httpBody = try? JSONSerialization.data(withJSONObject: payload)
+        postReq.httpBody = try? JSONSerialization.data(withJSONObject: fullPayload)
 
         guard let (postData, postResp) = try? await session.data(for: postReq),
               let postHTTP = postResp as? HTTPURLResponse
@@ -307,20 +358,36 @@ final class PomodoroMusicCoordinator {
         }
 
         let postBody = String(data: postData, encoding: .utf8) ?? ""
-        print("[PomodoroMusicCoordinator] Queue POST \(payload) → HTTP \(postHTTP.statusCode)\(postBody.isEmpty ? "" : " \(postBody)")")
+        print("[PomodoroMusicCoordinator] Queue POST → HTTP \(postHTTP.statusCode)\(postBody.isEmpty ? "" : " \(postBody)")")
 
         if postHTTP.statusCode == 401 { cachedToken = nil }
         guard (200..<300).contains(postHTTP.statusCode) else { return false }
 
-        // Step C: jump directly to the inserted track
         try? await Task.sleep(for: .milliseconds(300))
         let jumped = await setQueueIndex(targetIndex, token: token)
         print("[PomodoroMusicCoordinator] PATCH /queue { index: \(targetIndex) } → \(jumped ? "✓" : "✗")")
-
         return jumped
     }
 
     // MARK: - Queue Helpers
+
+    /// DELETE /api/v1/queue — clears all queued items; current track continues playing.
+    @discardableResult
+    private func clearQueue() async -> Bool {
+        guard let token = await getToken(),
+              let url = URL(string: "\(baseURL)/api/v1/queue")
+        else { return false }
+
+        var req = URLRequest(url: url)
+        req.httpMethod = "DELETE"
+        req.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+        guard let (_, resp) = try? await session.data(for: req),
+              let http = resp as? HTTPURLResponse
+        else { return false }
+        if http.statusCode == 401 { cachedToken = nil }
+        return (200..<300).contains(http.statusCode)
+    }
 
     /// Returns the 0-based index of the item with `selected == true` in the queue.
     private func selectedQueueIndex(token: String) async -> Int? {
@@ -365,7 +432,6 @@ final class PomodoroMusicCoordinator {
 
     // MARK: - Song State Capture / Seek
 
-    /// Captures the current song's videoId + elapsed position for resume.
     private func captureCurrentSong() async -> PhaseSnapshot? {
         guard let token = await getToken(),
               let url = URL(string: "\(baseURL)/api/v1/song")
@@ -381,15 +447,14 @@ final class PomodoroMusicCoordinator {
         else { return nil }
 
         let elapsed: Double
-        if let e = json["elapsedSeconds"] as? Double { elapsed = e }
-        else if let e = json["elapsedSeconds"] as? Int { elapsed = Double(e) }
-        else { elapsed = 0 }
+        if let e = json["elapsedSeconds"] as? Double      { elapsed = e }
+        else if let e = json["elapsedSeconds"] as? Int    { elapsed = Double(e) }
+        else                                               { elapsed = 0 }
 
         let title = json["title"] as? String ?? videoId
         return PhaseSnapshot(videoId: videoId, elapsedSeconds: elapsed, title: title)
     }
 
-    /// POST /api/v1/seek-to { "seconds": N }
     @discardableResult
     private func seekTo(seconds: Double) async -> Bool {
         guard let token = await getToken(),
@@ -411,15 +476,14 @@ final class PomodoroMusicCoordinator {
 
     // MARK: - URL Helpers
 
-    /// Strip the `si` share-tracking parameter YouTube Music appends to share links.
     private func stripShareParam(_ url: URL) -> URL {
         guard var c = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return url }
         c.queryItems = c.queryItems?.filter { $0.name != "si" }
         return c.url ?? url
     }
 
-    /// Build the POST /api/v1/queue payload for a given URL.
-    /// Returns nil for playlist-only URLs (no video ID).
+    /// Builds the POST /api/v1/queue payload for a watch?v=... URL.
+    /// Returns nil for playlist-only URLs — those can only be handled by the navigate endpoint.
     private func queuePayload(for url: URL) -> [String: Any]? {
         guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
               let host = url.host, host.contains("music.youtube.com")
@@ -429,10 +493,7 @@ final class PomodoroMusicCoordinator {
 
         if url.path.contains("/watch"),
            let videoId = items.first(where: { $0.name == "v" })?.value {
-            var payload: [String: Any] = [
-                "videoId": videoId,
-                "insertPosition": "INSERT_AFTER_CURRENT_VIDEO"
-            ]
+            var payload: [String: Any] = ["videoId": videoId]
             if let listId = items.first(where: { $0.name == "list" })?.value {
                 payload["playlistId"] = listId
             }
@@ -440,17 +501,16 @@ final class PomodoroMusicCoordinator {
         }
 
         if url.path.contains("/playlist") {
-            let listId = items.first(where: { $0.name == "list" })?.value ?? ""
-            print("[PomodoroMusicCoordinator] Playlist-only URL not supported for queue API.")
-            print("[PomodoroMusicCoordinator]   Use watch?v=ANY_TRACK&list=\(listId)")
+            print("[PomodoroMusicCoordinator] Playlist-only URL: queue path cannot load playlists.")
+            print("[PomodoroMusicCoordinator]   Enable the Navigate plugin in YTMD for playlist support.")
             return nil
         }
 
         return nil
     }
 
-    /// Returns true if the URL contains both a video ID and a playlist — meaning YTMD
-    /// will load full playlist context, making shuffle-skip effective.
+    /// True when the URL carries both a video ID and a playlist — meaning YTMD has
+    /// playlist context loaded and shuffle + /next will be effective.
     private func hasPlaylistContext(_ url: URL) -> Bool {
         guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return false }
         let items = components.queryItems ?? []

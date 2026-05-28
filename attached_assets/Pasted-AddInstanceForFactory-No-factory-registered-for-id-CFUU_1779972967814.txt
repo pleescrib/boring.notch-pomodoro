@@ -1,0 +1,277 @@
+AddInstanceForFactory: No factory registered for id <CFUUID 0x98a018c00> F8BB1C28-BAE8-11D6-9C31-00039315CD46
+cannot open file at line 51044 of [f0ca7bba1c]
+os_unix.c:51044: (2) open(/private/var/db/DetachedSignatures) - No such file or directory
+PRECONDITION FAILURE: Process is sandboxed but 'com.apple.security.exception.mach-lookup.global-name' doesn't contain 'com.apple.audioanalyticsd'.
+Reporter disconnected or already stopped. { func=stop, reporterID=70604967378945 }
+More than one bundle with the same factory UUID detected: {
+    "ff5ed090-1521-11ea-8d71-362b9e155667" = "BlackHole_Create";
+} in CFBundle 0x989c0e300 </Library/Audio/Plug-Ins/HAL/SteamStreamingSpeakers.driver> (not loaded) and CFBundle/CFPlugIn 0x989c0e060 </Library/Audio/Plug-Ins/HAL/SteamStreamingMicrophone.driver> (not loaded)
+CMIO_DAL_CMIOExtension_Device.mm:373:Device legacy uuid isn't present, using new style uuid instead
+CMIO_DAL_CMIOExtension_Device.mm:373:Device legacy uuid isn't present, using new style uuid instead
+Unable to obtain a task name port right for pid 430: (os/kern) failure (0x5)
+CGImageDestinationCreateWithData:5555: *** ERROR: CGImageDestinationCreateWithData: invalid capacity (0)
+finalizeDestination:4331: *** ERROR: CGImageDestinationFinalize was called, but there were no images added
+CGImageDestinationCreateWithData:5555: *** ERROR: CGImageDestinationCreateWithData: invalid capacity (0)
+finalizeDestination:4331: *** ERROR: CGImageDestinationFinalize was called, but there were no images added
+CGImageDestinationCreateWithData:5555: *** ERROR: CGImageDestinationCreateWithData: invalid capacity (0)
+finalizeDestination:4331: *** ERROR: CGImageDestinationFinalize was called, but there were no images added
+CGImageDestinationCreateWithData:5555: *** ERROR: CGImageDestinationCreateWithData: invalid capacity (0)
+finalizeDestination:4331: *** ERROR: CGImageDestinationFinalize was called, but there were no images added
+CGImageDestinationCreateWithData:5555: *** ERROR: CGImageDestinationCreateWithData: invalid capacity (0)
+finalizeDestination:4331: *** ERROR: CGImageDestinationFinalize was called, but there were no images added
+CGImageDestinationCreateWithData:5555: *** ERROR: CGImageDestinationCreateWithData: invalid capacity (0)
+finalizeDestination:4331: *** ERROR: CGImageDestinationFinalize was called, but there were no images added
+CGImageDestinationCreateWithData:5555: *** ERROR: CGImageDestinationCreateWithData: invalid capacity (0)
+finalizeDestination:4331: *** ERROR: CGImageDestinationFinalize was called, but there were no images added
+CGImageDestinationCreateWithData:5555: *** ERROR: CGImageDestinationCreateWithData: invalid capacity (0)
+finalizeDestination:4331: *** ERROR: CGImageDestinationFinalize was called, but there were no images added
+Warning: Background app automatically schedules for update checks but does not implement gentle reminders. As a result, users may not take notice to update alerts that show up in the background. Please visit https://sparkle-project.org/documentation/gentle-reminders for more information. This warning will only be logged once.
+Not showing popover because the view has no window (YES) or we're no longer retaining the Share Sheet remote view controller (NO)
+Deprecation check completed: false
+Preferred Media Controller: youtubeMusic
+🕒 Time to full charge: 28 minutes
+🔋 Battery level: 92%
+🕒 Time to full charge: 26 minutes
+🔋 Battery level: 93%
+🕒 Time to full charge: 25 minutes
+[PomodoroMusicCoordinator] YTMD not running — skipping
+nw_socket_handle_socket_event [C1.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C1.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+nw_socket_handle_socket_event [C1.1.2:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C1.1.2 127.0.0.1:26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+nw_endpoint_flow_failed_with_error [C1.1.2 127.0.0.1:26538 cancelled socket-flow ((null))] already failing, returning
+Connection 1: received failure notification
+Connection 1: failed to connect 1:61, reason -1
+Connection 1: encountered error(1:61)
+Task <AC2D96BF-9AA8-44EA-A7A2-023A5CF2F4B1>.<1> HTTP load failed, 0/0 bytes (error code: -1004 [1:61])
+Task <AC2D96BF-9AA8-44EA-A7A2-023A5CF2F4B1>.<1> finished with error [-1004] Error Domain=NSURLErrorDomain Code=-1004 "Could not connect to the server." UserInfo={_kCFStreamErrorCodeKey=61, NSUnderlyingError=0x988c6c0c0 {Error Domain=kCFErrorDomainCFNetwork Code=-1004 "(null)" UserInfo={_NSURLErrorNWPathKey=satisfied (Path is satisfied), interface: lo0, _kCFStreamErrorCodeKey=61, _kCFStreamErrorDomainKey=1}}, _NSURLErrorFailingURLSessionTaskErrorKey=LocalDataTask <AC2D96BF-9AA8-44EA-A7A2-023A5CF2F4B1>.<1>, _NSURLErrorRelatedURLSessionTaskErrorKey=(
+    "LocalDataTask <AC2D96BF-9AA8-44EA-A7A2-023A5CF2F4B1>.<1>"
+), NSLocalizedDescription=Could not connect to the server., NSErrorFailingURLStringKey=http://localhost:26538/auth/boringNotch, NSErrorFailingURLKey=http://localhost:26538/auth/boringNotch, _kCFStreamErrorDomainKey=1}
+[PomodoroMusicCoordinator] Auth failed
+nw_socket_handle_socket_event [C2.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C2.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+nw_socket_handle_socket_event [C2.1.2:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C2.1.2 127.0.0.1:26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+nw_endpoint_flow_failed_with_error [C2.1.2 127.0.0.1:26538 cancelled socket-flow ((null))] already failing, returning
+Connection 2: received failure notification
+Connection 2: failed to connect 1:61, reason -1
+Connection 2: encountered error(1:61)
+Task <45B4EE2C-4DA5-477B-9AB5-955BCDB71C70>.<1> HTTP load failed, 0/0 bytes (error code: -1004 [1:61])
+Task <45B4EE2C-4DA5-477B-9AB5-955BCDB71C70>.<1> finished with error [-1004] Error Domain=NSURLErrorDomain Code=-1004 "Could not connect to the server." UserInfo={_kCFStreamErrorCodeKey=61, NSUnderlyingError=0x98823aeb0 {Error Domain=kCFErrorDomainCFNetwork Code=-1004 "(null)" UserInfo={_NSURLErrorNWPathKey=satisfied (Path is satisfied), interface: lo0, _kCFStreamErrorCodeKey=61, _kCFStreamErrorDomainKey=1}}, _NSURLErrorFailingURLSessionTaskErrorKey=LocalDataTask <45B4EE2C-4DA5-477B-9AB5-955BCDB71C70>.<1>, _NSURLErrorRelatedURLSessionTaskErrorKey=(
+    "LocalDataTask <45B4EE2C-4DA5-477B-9AB5-955BCDB71C70>.<1>"
+), NSLocalizedDescription=Could not connect to the server., NSErrorFailingURLStringKey=http://localhost:26538/auth/boringNotch, NSErrorFailingURLKey=http://localhost:26538/auth/boringNotch, _kCFStreamErrorDomainKey=1}
+[YouTubeMusicController] Failed to initialize: Error Domain=NSURLErrorDomain Code=-1004 "Could not connect to the server." UserInfo={_kCFStreamErrorCodeKey=61, NSUnderlyingError=0x98823aeb0 {Error Domain=kCFErrorDomainCFNetwork Code=-1004 "(null)" UserInfo={_NSURLErrorNWPathKey=satisfied (Path is satisfied), interface: lo0, _kCFStreamErrorCodeKey=61, _kCFStreamErrorDomainKey=1}}, _NSURLErrorFailingURLSessionTaskErrorKey=LocalDataTask <45B4EE2C-4DA5-477B-9AB5-955BCDB71C70>.<1>, _NSURLErrorRelatedURLSessionTaskErrorKey=(
+    "LocalDataTask <45B4EE2C-4DA5-477B-9AB5-955BCDB71C70>.<1>"
+), NSLocalizedDescription=Could not connect to the server., NSErrorFailingURLStringKey=http://localhost:26538/auth/boringNotch, NSErrorFailingURLKey=http://localhost:26538/auth/boringNotch, _kCFStreamErrorDomainKey=1}
+nw_socket_handle_socket_event [C3.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C3.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+nw_socket_handle_socket_event [C4.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C4.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+[YouTubeMusicController] Failed to update playback info: DecodingError.dataCorrupted: Data was corrupted. Debug description: The given data was not valid JSON.. Underlying error: Error Domain=NSCocoaErrorDomain Code=3840 "Unexpected end of file" UserInfo={NSDebugDescription=Unexpected end of file}
+Playback state changed: Playing
+🕒 Time to full charge: 23 minutes
+Playback state changed: Paused
+nw_socket_handle_socket_event [C5.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C5.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+nw_path_necp_check_for_updates Failed to copy updated result (22)
+nw_socket_handle_socket_event [C6.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C6.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+Playback state changed: Playing
+nw_socket_handle_socket_event [C7.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C7.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+nw_protocol_instance_set_output_handler Not calling remove_input_handler on 0x98c077d40:udp
+🔋 Battery level: 94%
+nw_socket_handle_socket_event [C10.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C10.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+Playback state changed: Paused
+[PomodoroMusicCoordinator] Queue idx: 1 → inserting at 2
+[PomodoroMusicCoordinator] Queue POST ["insertPosition": "INSERT_AFTER_CURRENT_VIDEO", "videoId": "hj83cwfOF3Y"] → HTTP 204
+[PomodoroMusicCoordinator] PATCH /queue { index: 2 } → ✓
+Playback state changed: Playing
+[PomodoroMusicCoordinator] ✓ Track: 'Rainy Song' → 'Peaceful Piano & Soft Rain - Relaxing Sleep Music, A Bitter Rain'
+nw_socket_handle_socket_event [C11.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C11.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+nw_socket_handle_socket_event [C12.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C12.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+Playback state changed: Paused
+[PomodoroMusicCoordinator] Queue idx: 2 → inserting at 3
+[PomodoroMusicCoordinator] Queue POST ["videoId": "IejYKfQ7a9g", "insertPosition": "INSERT_AFTER_CURRENT_VIDEO"] → HTTP 204
+[PomodoroMusicCoordinator] PATCH /queue { index: 3 } → ✓
+Playback state changed: Playing
+[PomodoroMusicCoordinator] ✓ Track: 'Peaceful Piano & Soft Rain - Relaxing Sleep Music, A Bitter Rain' → 'Morning Energy & Inner Drive | Ultimate Workflow | Cut Distractions & Lock In'
+nw_socket_handle_socket_event [C13.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C13.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+nw_socket_handle_socket_event [C14.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C14.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+nw_socket_handle_socket_event [C15.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C15.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+[PomodoroMusicCoordinator] Saved work position: 964s into 'Morning Energy & Inner Drive | Ultimate Workflow | Cut Distractions & Lock In'
+Playback state changed: Paused
+[PomodoroMusicCoordinator] Queue idx: 3 → inserting at 4
+[PomodoroMusicCoordinator] Queue POST ["videoId": "hj83cwfOF3Y", "insertPosition": "INSERT_AFTER_CURRENT_VIDEO"] → HTTP 204
+[PomodoroMusicCoordinator] PATCH /queue { index: 4 } → ✓
+Playback state changed: Playing
+[PomodoroMusicCoordinator] ✓ Track: 'Morning Energy & Inner Drive | Ultimate Workflow | Cut Distractions & Lock In' → 'Peaceful Piano & Soft Rain - Relaxing Sleep Music, A Bitter Rain'
+nw_socket_handle_socket_event [C16.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C16.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+Playback state changed: Paused
+[PomodoroMusicCoordinator] Resuming work: 'Morning Energy & Inner Drive | Ultimate Workflow | Cut Distractions & Lock In' at 964s
+[PomodoroMusicCoordinator] Queue idx: 4 → inserting at 5
+[PomodoroMusicCoordinator] Queue POST ["videoId": "IejYKfQ7a9g", "insertPosition": "INSERT_AFTER_CURRENT_VIDEO"] → HTTP 204
+[PomodoroMusicCoordinator] PATCH /queue { index: 5 } → ✓
+Playback state changed: Playing
+[PomodoroMusicCoordinator] Seek 964s → ✓
+🕒 Time to full charge: 22 minutes
+nw_socket_handle_socket_event [C17.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C17.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+nw_socket_handle_socket_event [C18.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C18.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+[PomodoroMusicCoordinator] Saved work position: 987s into 'Morning Energy & Inner Drive | Ultimate Workflow | Cut Distractions & Lock In'
+Playback state changed: Paused
+[PomodoroMusicCoordinator] Queue idx: 5 → inserting at 6
+[PomodoroMusicCoordinator] Queue POST ["videoId": "hj83cwfOF3Y", "insertPosition": "INSERT_AFTER_CURRENT_VIDEO"] → HTTP 204
+[PomodoroMusicCoordinator] PATCH /queue { index: 6 } → ✓
+Playback state changed: Playing
+[PomodoroMusicCoordinator] ✓ Track: 'Morning Energy & Inner Drive | Ultimate Workflow | Cut Distractions & Lock In' → 'Peaceful Piano & Soft Rain - Relaxing Sleep Music, A Bitter Rain'
+nw_socket_handle_socket_event [C19.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C19.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+nw_socket_handle_socket_event [C20.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C20.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+Playback state changed: Paused
+[PomodoroMusicCoordinator] Resuming work: 'Morning Energy & Inner Drive | Ultimate Workflow | Cut Distractions & Lock In' at 987s
+[PomodoroMusicCoordinator] Queue idx: 6 → inserting at 7
+[PomodoroMusicCoordinator] Queue POST ["videoId": "IejYKfQ7a9g", "insertPosition": "INSERT_AFTER_CURRENT_VIDEO"] → HTTP 204
+[PomodoroMusicCoordinator] PATCH /queue { index: 7 } → ✓
+Playback state changed: Playing
+[PomodoroMusicCoordinator] Seek 987s → ✓
+nw_socket_handle_socket_event [C21.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C21.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+nw_socket_handle_socket_event [C22.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C22.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+[PomodoroMusicCoordinator] Saved work position: 992s into 'Morning Energy & Inner Drive | Ultimate Workflow | Cut Distractions & Lock In'
+Playback state changed: Paused
+[PomodoroMusicCoordinator] Queue idx: 7 → inserting at 8
+[PomodoroMusicCoordinator] Queue POST ["videoId": "Kk7--moip1w", "insertPosition": "INSERT_AFTER_CURRENT_VIDEO"] → HTTP 204
+[PomodoroMusicCoordinator] PATCH /queue { index: 8 } → ✓
+Playback state changed: Playing
+[PomodoroMusicCoordinator] ✓ Track: 'Morning Energy & Inner Drive | Ultimate Workflow | Cut Distractions & Lock In' → '10 Minute Super Deep Meditation Music •  Relax Mind Body, Inner Peace, Relaxing Music'
+🔋 Battery level: 95%
+🕒 Time to full charge: 20 minutes
+🔋 Battery level: 96%
+nw_socket_handle_socket_event [C23.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C23.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+🕒 Time to full charge: 18 minutes
+nw_socket_handle_socket_event [C24.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C24.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+🔋 Battery level: 97%
+nw_socket_handle_socket_event [C25.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C25.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+nw_socket_handle_socket_event [C26.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C26.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+nw_socket_handle_socket_event [C27.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C27.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+Playback state changed: Paused
+[PomodoroMusicCoordinator] Resuming work: 'Morning Energy & Inner Drive | Ultimate Workflow | Cut Distractions & Lock In' at 992s
+[PomodoroMusicCoordinator] Queue idx: 8 → inserting at 9
+[PomodoroMusicCoordinator] Queue POST ["insertPosition": "INSERT_AFTER_CURRENT_VIDEO", "videoId": "IejYKfQ7a9g"] → HTTP 204
+[PomodoroMusicCoordinator] PATCH /queue { index: 9 } → ✓
+Playback state changed: Playing
+[PomodoroMusicCoordinator] Seek 992s → ✓
+nw_socket_handle_socket_event [C28.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C28.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+ViewBridge to RemoteViewService Terminated: Error Domain=com.apple.ViewBridge Code=18 "(null)" UserInfo={com.apple.ViewBridge.error.hint=this process disconnected remote view controller -- benign unless unexpected, com.apple.ViewBridge.error.description=NSViewBridgeErrorCanceled}
+nw_socket_handle_socket_event [C29.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C29.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+nw_socket_handle_socket_event [C30.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C30.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+[PomodoroMusicCoordinator] Saved work position: 1005s into 'Morning Energy & Inner Drive | Ultimate Workflow | Cut Distractions & Lock In'
+Playback state changed: Paused
+[PomodoroMusicCoordinator] Queue idx: 9 → inserting at 10
+[PomodoroMusicCoordinator] Queue POST ["insertPosition": "INSERT_AFTER_CURRENT_VIDEO", "videoId": "hj83cwfOF3Y"] → HTTP 204
+[PomodoroMusicCoordinator] PATCH /queue { index: 10 } → ✓
+Playback state changed: Playing
+[PomodoroMusicCoordinator] ✓ Track: 'Morning Energy & Inner Drive | Ultimate Workflow | Cut Distractions & Lock In' → 'Peaceful Piano & Soft Rain - Relaxing Sleep Music, A Bitter Rain'
+nw_socket_handle_socket_event [C31.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C31.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+Playback state changed: Paused
+[PomodoroMusicCoordinator] Resuming work: 'Morning Energy & Inner Drive | Ultimate Workflow | Cut Distractions & Lock In' at 1005s
+[PomodoroMusicCoordinator] Queue idx: 10 → inserting at 11
+[PomodoroMusicCoordinator] Queue POST ["videoId": "IejYKfQ7a9g", "insertPosition": "INSERT_AFTER_CURRENT_VIDEO"] → HTTP 204
+[PomodoroMusicCoordinator] PATCH /queue { index: 11 } → ✓
+Playback state changed: Playing
+[PomodoroMusicCoordinator] Seek 1005s → ✓
+nw_socket_handle_socket_event [C32.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C32.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+nw_socket_handle_socket_event [C33.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C33.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+nw_socket_handle_socket_event [C34.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C34.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+Playback state changed: Paused
+[PomodoroMusicCoordinator] Queue idx: 11 → inserting at 12
+[PomodoroMusicCoordinator] Queue POST ["videoId": "hj83cwfOF3Y", "insertPosition": "INSERT_AFTER_CURRENT_VIDEO"] → HTTP 204
+[PomodoroMusicCoordinator] PATCH /queue { index: 12 } → ✓
+Playback state changed: Playing
+[PomodoroMusicCoordinator] ✓ Track: 'Morning Energy & Inner Drive | Ultimate Workflow | Cut Distractions & Lock In' → 'Peaceful Piano & Soft Rain - Relaxing Sleep Music, A Bitter Rain'
+Playback state changed: Paused
+[PomodoroMusicCoordinator] Playlist-only URL not supported for queue API.
+[PomodoroMusicCoordinator]   Use watch?v=ANY_TRACK&list=PL2_Zni0O-J7CUkNRb1_od8F_y9L-z6frY
+[PomodoroMusicCoordinator] Queue strategy: unrecognised URL — skipping
+Playback state changed: Playing
+Playback state changed: Paused
+[PomodoroMusicCoordinator] Queue idx: 0 → inserting at 1
+[PomodoroMusicCoordinator] Queue POST ["videoId": "hj83cwfOF3Y", "insertPosition": "INSERT_AFTER_CURRENT_VIDEO"] → HTTP 204
+[PomodoroMusicCoordinator] PATCH /queue { index: 1 } → ✓
+Playback state changed: Playing
+[PomodoroMusicCoordinator] ✗ Track: 'Peaceful Piano & Soft Rain - Relaxing Sleep Music, A Bitter Rain' → 'Peaceful Piano & Soft Rain - Relaxing Sleep Music, A Bitter Rain'
+Playback state changed: Paused
+[PomodoroMusicCoordinator] Playlist-only URL not supported for queue API.
+[PomodoroMusicCoordinator]   Use watch?v=ANY_TRACK&list=PL2_Zni0O-J7CUkNRb1_od8F_y9L-z6frY
+[PomodoroMusicCoordinator] Queue strategy: unrecognised URL — skipping
+Playback state changed: Playing
+nw_socket_handle_socket_event [C35.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C35.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+nw_socket_handle_socket_event [C36.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C36.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+Playback state changed: Paused
+nw_socket_handle_socket_event [C37.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C37.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+🕒 Time to full charge: 16 minutes
+nw_path_necp_check_for_updates Failed to copy updated result (22)
+nw_socket_handle_socket_event [C38.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C38.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+nw_socket_handle_socket_event [C39.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C39.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+nw_socket_handle_socket_event [C40.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C40.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+[PomodoroMusicCoordinator] Queue idx: 0 → inserting at 1
+[PomodoroMusicCoordinator] Queue POST ["videoId": "Kk7--moip1w", "insertPosition": "INSERT_AFTER_CURRENT_VIDEO"] → HTTP 204
+[PomodoroMusicCoordinator] PATCH /queue { index: 1 } → ✓
+Playback state changed: Playing
+[PomodoroMusicCoordinator] ✓ Track: 'Peaceful Piano & Soft Rain - Relaxing Sleep Music, A Bitter Rain' → '10 Minute Super Deep Meditation Music •  Relax Mind Body, Inner Peace, Relaxing Music'
+Playback state changed: Paused
+[PomodoroMusicCoordinator] Queue idx: 13 → inserting at 14
+[PomodoroMusicCoordinator] Queue POST ["insertPosition": "INSERT_AFTER_CURRENT_VIDEO", "videoId": "zRiQGNqrycc"] → HTTP 204
+[PomodoroMusicCoordinator] PATCH /queue { index: 14 } → ✓
+Playback state changed: Playing
+[PomodoroMusicCoordinator] ✓ Track: '10 Minute Super Deep Meditation Music •  Relax Mind Body, Inner Peace, Relaxing Music' → 'Essential Fejká | Deep House Mix'
+nw_path_necp_check_for_updates Failed to copy updated result (22)
+nw_socket_handle_socket_event [C41.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C41.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+nw_socket_handle_socket_event [C42.1.1:2] Socket SO_ERROR [61: Connection refused]
+nw_endpoint_flow_failed_with_error [C42.1.1 ::1.26538 in_progress socket-flow (satisfied (Path is satisfied), viable, interface: lo0)] already failing, returning
+Playback state changed: Paused
+[PomodoroMusicCoordinator] Queue idx: 0 → inserting at 1
+[PomodoroMusicCoordinator] Queue POST ["insertPosition": "INSERT_AFTER_CURRENT_VIDEO", "videoId": "hj83cwfOF3Y"] → HTTP 204
+[PomodoroMusicCoordinator] PATCH /queue { index: 1 } → ✓
+Playback state changed: Playing
+[PomodoroMusicCoordinator] ✓ Track: 'Essential Fejká | Deep House Mix' → 'Peaceful Piano & Soft Rain - Relaxing Sleep Music, A Bitter Rain'
+Playback state changed: Paused
+[PomodoroMusicCoordinator] Queue idx: 1 → inserting at 2
+[PomodoroMusicCoordinator] Queue POST ["videoId": "zRiQGNqrycc", "insertPosition": "INSERT_AFTER_CURRENT_VIDEO"] → HTTP 204
+[PomodoroMusicCoordinator] PATCH /queue { index: 2 } → ✓
+Playback state changed: Playing
+[PomodoroMusicCoordinator] ✓ Track: 'Peaceful Piano & Soft Rain - Relaxing Sleep Music, A Bitter Rain' → 'Essential Fejká | Deep House Mix'
+Playback state changed: Paused
+🔋 Battery level: 98%
+🕒 Time to full charge: 15 minutes
+🕒 Time to full charge: 16 minutes
