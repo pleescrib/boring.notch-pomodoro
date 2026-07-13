@@ -85,6 +85,9 @@
                 149E0B9A2C737D40006418B1 /* WebcamView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 149E0B992C737D40006418B1 /* WebcamView.swift */; };
                 14A7E5882C64A89C008C1BE9 /* HelloAnimation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14A7E5872C64A89C008C1BE9 /* HelloAnimation.swift */; };
                 14A7E5972C65FD31008C1BE9 /* boring.m4a in Resources */ = {isa = PBXBuildFile; fileRef = 14A7E5962C65FD31008C1BE9 /* boring.m4a */; };
+                D7D847F33B2A47E58A15FD34 /* pomodoro_gong.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 8AF7C792FBFF4CC292C82E45 /* pomodoro_gong.mp3 */; };
+                B971733A87EE4391A7A5D7F8 /* pomodoro_chime_bright.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 5E0FBA53D1D54235AC2E92CF /* pomodoro_chime_bright.mp3 */; };
+                A02C54FE4E1A4FB9A1D4D945 /* pomodoro_chime_down.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = DED6B1FD88764BBEA6DD9090 /* pomodoro_chime_down.mp3 */; };
                 14C08BB62C8DE42D000F8AA0 /* CalendarManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14C08BB52C8DE42D000F8AA0 /* CalendarManager.swift */; };
                 14C08BB92C8DE4B1000F8AA0 /* BoringCalendar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14C08BB82C8DE4B1000F8AA0 /* BoringCalendar.swift */; };
                 14C08BC12C8E03AD000F8AA0 /* NSImage+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14C08BC02C8E03AD000F8AA0 /* NSImage+Extensions.swift */; };
@@ -145,6 +148,7 @@
                 F38DE6482D8243E7008B5C6D /* BatteryActivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = F38DE6472D8243E2008B5C6D /* BatteryActivityManager.swift */; };
                 AA000111111111111111AA01 /* PomodoroManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000111111111111111AA00 /* PomodoroManager.swift */; };
                 AA000111111111111111AA03 /* PomodoroMusicCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000111111111111111AA02 /* PomodoroMusicCoordinator.swift */; };
+                960572807357402AB4975793 /* PomodoroSFXManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20CAA07E9A3044FDB04D19EC /* PomodoroSFXManager.swift */; };
                 AA000111111111111111AA05 /* PomodoroBezelBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000111111111111111AA04 /* PomodoroBezelBar.swift */; };
                 AA000111111111111111AA07 /* PomodoroHoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000111111111111111AA06 /* PomodoroHoverView.swift */; };
                 AA000111111111111111AA09 /* PomodoroSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000111111111111111AA08 /* PomodoroSettings.swift */; };
@@ -258,6 +262,9 @@
                 149E0B992C737D40006418B1 /* WebcamView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebcamView.swift; sourceTree = "<group>"; };
                 14A7E5872C64A89C008C1BE9 /* HelloAnimation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelloAnimation.swift; sourceTree = "<group>"; };
                 14A7E5962C65FD31008C1BE9 /* boring.m4a */ = {isa = PBXFileReference; lastKnownFileType = file; path = boring.m4a; sourceTree = "<group>"; };
+                8AF7C792FBFF4CC292C82E45 /* pomodoro_gong.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = pomodoro_gong.mp3; sourceTree = "<group>"; };
+                5E0FBA53D1D54235AC2E92CF /* pomodoro_chime_bright.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = pomodoro_chime_bright.mp3; sourceTree = "<group>"; };
+                DED6B1FD88764BBEA6DD9090 /* pomodoro_chime_down.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = pomodoro_chime_down.mp3; sourceTree = "<group>"; };
                 14C08BB52C8DE42D000F8AA0 /* CalendarManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarManager.swift; sourceTree = "<group>"; };
                 14C08BB82C8DE4B1000F8AA0 /* BoringCalendar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BoringCalendar.swift; sourceTree = "<group>"; };
                 14C08BC02C8E03AD000F8AA0 /* NSImage+Extensions.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = "NSImage+Extensions.swift"; sourceTree = "<group>"; };
@@ -316,6 +323,7 @@
                 F38DE6472D8243E2008B5C6D /* BatteryActivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BatteryActivityManager.swift; sourceTree = "<group>"; };
                 AA000111111111111111AA00 /* PomodoroManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PomodoroManager.swift; sourceTree = "<group>"; };
                 AA000111111111111111AA02 /* PomodoroMusicCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PomodoroMusicCoordinator.swift; sourceTree = "<group>"; };
+                20CAA07E9A3044FDB04D19EC /* PomodoroSFXManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PomodoroSFXManager.swift; sourceTree = "<group>"; };
                 AA000111111111111111AA04 /* PomodoroBezelBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PomodoroBezelBar.swift; sourceTree = "<group>"; };
                 AA000111111111111111AA06 /* PomodoroHoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PomodoroHoverView.swift; sourceTree = "<group>"; };
                 AA000111111111111111AA08 /* PomodoroSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PomodoroSettings.swift; sourceTree = "<group>"; };
@@ -531,6 +539,7 @@
                                 59D8C23B2E589FAA00147B33 /* VolumeManager.swift */,
                                 AA000111111111111111AA00 /* PomodoroManager.swift */,
                                 AA000111111111111111AA02 /* PomodoroMusicCoordinator.swift */,
+                                20CAA07E9A3044FDB04D19EC /* PomodoroSFXManager.swift */,
                         );
                         path = managers;
                         sourceTree = "<group>";
@@ -592,6 +601,9 @@
                                 B17266E02C6532560031BA0D /* Localizable.xcstrings */,
                                 14CEF4192C5CAED400855D72 /* Assets.xcassets */,
                                 14A7E5962C65FD31008C1BE9 /* boring.m4a */,
+                                8AF7C792FBFF4CC292C82E45 /* pomodoro_gong.mp3 */,
+                                5E0FBA53D1D54235AC2E92CF /* pomodoro_chime_bright.mp3 */,
+                                DED6B1FD88764BBEA6DD9090 /* pomodoro_chime_down.mp3 */,
                                 1443E7F42C609E650027C1FC /* Info.plist */,
                                 14CEF41E2C5CAED400855D72 /* boringNotch.entitlements */,
                                 14CEF41B2C5CAED400855D72 /* Preview Content */,
@@ -911,6 +923,9 @@
                                 112B0EB92E30DD0F00562D6C /* mediaremote-adapter.pl in Resources */,
                                 B17266E12C6532560031BA0D /* Localizable.xcstrings in Resources */,
                                 14A7E5972C65FD31008C1BE9 /* boring.m4a in Resources */,
+                                D7D847F33B2A47E58A15FD34 /* pomodoro_gong.mp3 in Resources */,
+                                B971733A87EE4391A7A5D7F8 /* pomodoro_chime_bright.mp3 in Resources */,
+                                A02C54FE4E1A4FB9A1D4D945 /* pomodoro_chime_down.mp3 in Resources */,
                         );
                         runOnlyForDeploymentPostprocessing = 0;
                 };
@@ -1045,6 +1060,7 @@
                                 B1F0A0022E60000100000001 /* BrightnessManager.swift in Sources */,
                                 AA000111111111111111AA01 /* PomodoroManager.swift in Sources */,
                                 AA000111111111111111AA03 /* PomodoroMusicCoordinator.swift in Sources */,
+                                960572807357402AB4975793 /* PomodoroSFXManager.swift in Sources */,
                                 AA000111111111111111AA05 /* PomodoroBezelBar.swift in Sources */,
                                 AA000111111111111111AA07 /* PomodoroHoverView.swift in Sources */,
                                 AA000111111111111111AA09 /* PomodoroSettings.swift in Sources */,

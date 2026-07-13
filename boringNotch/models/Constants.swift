@@ -223,4 +223,8 @@ extension Defaults.Keys {
     static let pomodoroYTMWorkResume = Key<Bool>("pomodoroYTMWorkResume", default: false)
     static let pomodoroYTMBreakResume = Key<Bool>("pomodoroYTMBreakResume", default: false)
     static let pomodoroYTMLongBreakResume = Key<Bool>("pomodoroYTMLongBreakResume", default: false)
+
+    // MARK: Pomodoro — Sound Effects
+    static let pomodoroSFXEnabled = Key<Bool>("pomodoroSFXEnabled", default: false)
+    static let pomodoroSFXVolume  = Key<Double>("pomodoroSFXVolume", default: 0.7)
 }

@@ -200,10 +200,10 @@ final class PomodoroMusicCoordinator {
         // The currently buffered/playing track is unaffected by the clear.
         let cleared = await clearQueue()
         print("[PomodoroMusicCoordinator] Queue cleared → \(cleared ? "✓" : "✗")")
-        if cleared {
-            try? await Task.sleep(for: .milliseconds(300))
-            guard !Task.isCancelled else { return }
-        }
+        // Wait 500 ms for YTMD to settle its internal queue state after the clear.
+        // A shorter delay risks the subsequent POST seeing stale selected-index data.
+        try? await Task.sleep(for: .milliseconds(500))
+        guard !Task.isCancelled else { return }
 
         var navigated = false
         var didResume = false
@@ -327,21 +327,17 @@ final class PomodoroMusicCoordinator {
     private func insertAndJump(payload: [String: Any]) async -> Bool {
         guard let token = await getToken() else { return false }
 
-        // Find the currently selected queue index (post-clear, this is usually 0 or nil)
-        let currentIndex = await selectedQueueIndex(token: token)
-
-        // Choose insert position and target index based on whether there's a current item
+        // Since we always call clearQueue() before reaching here, the queue is empty.
+        // Querying selectedQueueIndex after a clear can return stale YTMD state if a
+        // track is still buffered/playing, which produces wrong target indices.
+        // Using INSERT_AT_END + index 0 is always correct on an empty queue and avoids
+        // the "stuck on same song" failure that happens when the stale current-position
+        // leaks through.
         var fullPayload = payload
-        let targetIndex: Int
-        if let cur = currentIndex {
-            fullPayload["insertPosition"] = "INSERT_AFTER_CURRENT_VIDEO"
-            targetIndex = cur + 1
-        } else {
-            fullPayload["insertPosition"] = "INSERT_AT_END"
-            targetIndex = 0
-        }
+        fullPayload["insertPosition"] = "INSERT_AT_END"
+        let targetIndex = 0
 
-        print("[PomodoroMusicCoordinator] Queue idx: \(currentIndex.map(String.init) ?? "empty") → inserting at \(targetIndex)")
+        print("[PomodoroMusicCoordinator] Queue cleared → inserting at end, jumping to index 0")
 
         guard let queueURL = URL(string: "\(baseURL)/api/v1/queue") else { return false }
         var postReq = URLRequest(url: queueURL)

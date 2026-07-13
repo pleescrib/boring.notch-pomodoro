@@ -27,6 +27,9 @@ struct PomodoroSettings: View {
     @Default(.pomodoroYTMBreakResume) var ytmBreakResume
     @Default(.pomodoroYTMLongBreakResume) var ytmLongBreakResume
 
+    @Default(.pomodoroSFXEnabled) var sfxEnabled
+    @Default(.pomodoroSFXVolume)  var sfxVolume
+
     @ObservedObject var pomodoroManager = PomodoroManager.shared
 
     var body: some View {
@@ -34,6 +37,7 @@ struct PomodoroSettings: View {
             presetSection
             longBreakSection
             sessionSection
+            sfxSection
             ytmSection
         }
         .accentColor(.effectiveAccent)
@@ -224,6 +228,35 @@ struct PomodoroSettings: View {
                 .font(.subheadline)
         }
         .padding(.vertical, 4)
+    }
+
+    private var sfxSection: some View {
+        Section {
+            Toggle(isOn: $sfxEnabled) {
+                Label("Sound effects", systemImage: "bell.fill")
+            }
+            .tint(.effectiveAccent)
+
+            if sfxEnabled {
+                HStack {
+                    Label("Volume", systemImage: "speaker.wave.2")
+                    Slider(value: $sfxVolume, in: 0...1)
+                        .tint(.effectiveAccent)
+                    Text("\(Int(sfxVolume * 100))%")
+                        .foregroundStyle(.secondary)
+                        .frame(width: 36, alignment: .trailing)
+                        .monospacedDigit()
+                }
+            }
+        } header: {
+            Text("Sounds")
+        } footer: {
+            if sfxEnabled {
+                Text("A gong plays at the start of each work session. Chimes play 15 seconds before each phase ends.")
+                    .foregroundStyle(.secondary)
+                    .font(.caption)
+            }
+        }
     }
 
     private func isPlaylistOnlyURL(_ string: String) -> Bool {

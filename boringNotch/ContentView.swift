@@ -31,6 +31,7 @@ struct ContentView: View {
     @State private var gestureProgress: CGFloat = .zero
 
     @State private var haptics: Bool = false
+    @State private var accentColorTrigger = UUID()
 
     @Namespace var albumArtNamespace
 
@@ -90,14 +91,20 @@ struct ContentView: View {
         }()
         
         ZStack(alignment: .top) {
-            // Pomodoro bezel bar — renders around the outside edge of the closed notch
+            // Pomodoro bezel bar — renders around the outside edge of the closed notch.
+            // Uses computedChinWidth so the bar stretches to match the notch when music
+            // playback adds side padding (otherwise the ends get occluded by the black area).
+            // The .id(accentColorTrigger) forces a re-render when the system accent changes
+            // because Color.effectiveAccent is a static computed property that SwiftUI
+            // cannot observe directly.
             if pomodoroManager.isRunning && vm.notchState == .closed && vm.effectiveClosedNotchHeight > 0 {
                 PomodoroBezelBar(
                     progress: pomodoroManager.progress,
-                    notchWidth: vm.closedNotchSize.width,
+                    notchWidth: computedChinWidth,
                     notchHeight: vm.effectiveClosedNotchHeight,
                     bottomCornerRadius: cornerRadiusInsets.closed.bottom
                 )
+                .id(accentColorTrigger)
             }
 
             VStack(spacing: 0) {
@@ -225,6 +232,14 @@ struct ContentView: View {
         .background(dragDetector)
         .preferredColorScheme(.dark)
         .environmentObject(vm)
+        .onReceive(
+            DistributedNotificationCenter.default()
+                .publisher(for: Notification.Name("AppleColorPreferencesChangedNotification"))
+        ) { _ in
+            // Color.effectiveAccent is a static computed property that SwiftUI cannot
+            // observe, so we force a full redraw of the bezel bar via its .id().
+            accentColorTrigger = UUID()
+        }
         .onChange(of: vm.anyDropZoneTargeting) { _, isTargeted in
             anyDropDebounceTask?.cancel()
 

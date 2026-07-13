@@ -167,6 +167,16 @@ final class PomodoroManager: ObservableObject {
             phaseElapsedSeconds += 1
             sessionElapsedSeconds += 1
             persistState()
+
+            // 15-second warning chimes
+            if secondsRemaining == 15 {
+                switch phase {
+                case .work:
+                    PomodoroSFXManager.shared.playPreBreak()
+                case .shortBreak, .longBreak:
+                    PomodoroSFXManager.shared.playPreWork()
+                }
+            }
         } else {
             advancePhase()
         }
@@ -182,6 +192,8 @@ final class PomodoroManager: ObservableObject {
                 : .shortBreak
         } else {
             phase = .work
+            // Gong marks the start of every work session
+            PomodoroSFXManager.shared.playWorkStart()
         }
 
         secondsRemaining = totalSecondsForCurrentPhase()
