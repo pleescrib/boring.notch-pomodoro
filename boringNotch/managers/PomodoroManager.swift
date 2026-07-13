@@ -74,10 +74,11 @@ final class PomodoroManager: ObservableObject {
     // MARK: - Private: Defaults observers
 
     private func observeDurationDefaults() {
-        // Refresh remaining time whenever a duration-affecting default changes
-        // and the timer is not currently running.
+        // Refresh remaining time whenever a duration-affecting default changes,
+        // but only when neither running NOR paused mid-phase — pausing mid-phase
+        // means the user has real elapsed progress that should be preserved.
         let refresh: () -> Void = { [weak self] in
-            guard let self, !self.isRunning else { return }
+            guard let self, !self.isRunning, !self.isPausedMidPhase else { return }
             self.secondsRemaining = self.totalSecondsForCurrentPhase()
             self.phaseElapsedSeconds = 0
         }

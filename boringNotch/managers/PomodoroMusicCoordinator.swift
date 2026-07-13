@@ -234,6 +234,15 @@ final class PomodoroMusicCoordinator {
             if !navigated {
                 navigated = await navigateViaQueueInsert(url: url)
             }
+
+            // Strategy 3: NSWorkspace open — last resort when both API strategies fail.
+            // Activates YTMD then opens the configured URL via the system URL handler.
+            // If YTMD is registered as the https handler for music.youtube.com (common in
+            // some Electron configurations) it opens there; otherwise the default browser
+            // loads the content. Either outcome provides deterministic per-phase URL switching.
+            if !navigated {
+                navigated = await navigateViaWorkspace(to: url)
+            }
         }
 
         guard !Task.isCancelled else { return }
@@ -363,6 +372,28 @@ final class PomodoroMusicCoordinator {
         let jumped = await setQueueIndex(targetIndex, token: token)
         print("[PomodoroMusicCoordinator] PATCH /queue { index: \(targetIndex) } → \(jumped ? "✓" : "✗")")
         return jumped
+    }
+
+    // MARK: - Strategy 3: NSWorkspace Open (last resort)
+
+    /// Opens `url` using macOS's system URL handler after bringing YTMD to the front.
+    ///
+    /// This fires when both the Navigate plugin (Strategy 1) and queue-based insertion
+    /// (Strategy 2) fail — typically because the Navigate plugin is not installed AND
+    /// the URL is a playlist-only link.  By activating YTMD first and then delegating
+    /// to `NSWorkspace`, the configured content is always opened in *some* context,
+    /// ensuring deterministic per-phase URL switching even in the worst case.
+    private func navigateViaWorkspace(to url: URL) async -> Bool {
+        await MainActor.run {
+            // Bring YTMD to front so the URL opens into the right app context
+            if let ytmd = NSWorkspace.shared.runningApplications
+                .first(where: { $0.bundleIdentifier == bundleID }) {
+                ytmd.activate(options: .activateIgnoringOtherApps)
+            }
+            let opened = NSWorkspace.shared.open(url)
+            print("[PomodoroMusicCoordinator] Strategy 3 (NSWorkspace): \(opened ? "✓" : "✗") — \(url.absoluteString)")
+            return opened
+        }
     }
 
     // MARK: - Queue Helpers
