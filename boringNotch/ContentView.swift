@@ -563,7 +563,14 @@ struct ContentView: View {
                     guard self.vm.notchState == .closed,
                           self.isHovering,
                           !self.coordinator.sneakPeek.show else { return }
-                    
+
+                    // When the timer is actively running, always route hover to the
+                    // Pomodoro view so the user sees their countdown immediately.
+                    // When paused or stopped, leave currentView untouched (default behavior).
+                    if self.pomodoroManager.isRunning {
+                        self.coordinator.currentView = .pomodoro
+                    }
+
                     self.doOpen()
                 }
             }

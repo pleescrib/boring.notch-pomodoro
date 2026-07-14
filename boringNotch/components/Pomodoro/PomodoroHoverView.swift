@@ -8,6 +8,7 @@ import SwiftUI
 
 struct PomodoroHoverView: View {
     @ObservedObject var pomodoroManager = PomodoroManager.shared
+    @ObservedObject var coordinator = BoringViewCoordinator.shared
 
     var body: some View {
         VStack(spacing: 12) {
@@ -24,14 +25,38 @@ struct PomodoroHoverView: View {
     // MARK: - Subviews
 
     private var phaseLabel: some View {
-        HStack(spacing: 6) {
-            Image(systemName: pomodoroManager.phase.systemImage)
-                .font(.system(size: 13, weight: .semibold))
-            Text(pomodoroManager.phase.displayName.uppercased())
-                .font(.system(size: 11, weight: .bold, design: .rounded))
-                .tracking(1.5)
+        HStack {
+            // Home button — returns to the main notch view without closing
+            Button {
+                coordinator.currentView = .home
+            } label: {
+                Image(systemName: "house.fill")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.4))
+                    .frame(width: 28, height: 28)
+                    .background(Color.white.opacity(0.07))
+                    .clipShape(Circle())
+            }
+            .buttonStyle(PlainButtonStyle())
+            .help("Back to home")
+
+            Spacer()
+
+            HStack(spacing: 6) {
+                Image(systemName: pomodoroManager.phase.systemImage)
+                    .font(.system(size: 13, weight: .semibold))
+                Text(pomodoroManager.phase.displayName.uppercased())
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .tracking(1.5)
+            }
+            .foregroundStyle(Color.effectiveAccent)
+
+            Spacer()
+
+            // Invisible spacer to balance the home button and keep the phase centred
+            Color.clear
+                .frame(width: 28, height: 28)
         }
-        .foregroundStyle(Color.effectiveAccent)
     }
 
     private var countdown: some View {
